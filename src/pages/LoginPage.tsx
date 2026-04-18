@@ -22,14 +22,16 @@ export default function LoginPage() {
         <Typography.Title level={3} style={{ marginBottom: 32 }}>
           MyDay Admin
         </Typography.Title>
-        <GoogleLogin
-          onSuccess={(res) => {
-            if (res.credential) login(res.credential);
-          }}
-          onError={() => {}}
-          size="large"
-          width={320}
-        />
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <GoogleLogin
+            onSuccess={(res) => {
+              if (res.credential) login(res.credential);
+            }}
+            onError={() => {}}
+            size="large"
+            width="352"
+          />
+        </div>
       </Card>
     </div>
   );

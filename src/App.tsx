@@ -9,6 +9,8 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
+import RoutinePresetsPage from "./pages/RoutinePresetsPage";
+import AdminsPage from "./pages/AdminsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +40,8 @@ export default function App() {
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/:uid" element={<UserDetailPage />} />
+                  <Route path="/routine-presets" element={<RoutinePresetsPage />} />
+                  <Route path="/admins" element={<AdminsPage />} />
                 </Route>
               </Routes>
             </BrowserRouter>

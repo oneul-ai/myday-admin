@@ -22,6 +22,7 @@ import { getUserTasks, type Task } from "../api/tasks";
 import { getUserDevices, updateDevice, type Device } from "../api/devices";
 import { getUserCalendars, getUserIntegrations } from "../api/calendars";
 import { getUserSchedules } from "../api/schedules";
+import { getUserRoutines, type Routine } from "../api/routines";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -67,6 +68,12 @@ export default function UserDetailPage() {
   const { data: schedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ["userSchedules", uid, scheduleDate],
     queryFn: () => getUserSchedules(uid!, { date: scheduleDate }),
+    enabled: !!uid,
+  });
+
+  const { data: routines, isLoading: routinesLoading } = useQuery({
+    queryKey: ["userRoutines", uid],
+    queryFn: () => getUserRoutines(uid!),
     enabled: !!uid,
   });
 
@@ -292,6 +299,64 @@ export default function UserDetailPage() {
             ]}
           />
         </>
+      ),
+    },
+    {
+      key: "routines",
+      label: "Routines",
+      children: (
+        <Table<Routine>
+          dataSource={routines}
+          loading={routinesLoading}
+          rowKey="id"
+          size="small"
+          pagination={false}
+          columns={[
+            {
+              title: "Time Slot",
+              dataIndex: "time_slot",
+              width: 110,
+              render: (v: string) => <Tag>{v}</Tag>,
+            },
+            { title: "Position", dataIndex: "position", width: 80 },
+            {
+              title: "Title",
+              dataIndex: "title",
+              render: (v: string, r: Routine) => (
+                <>
+                  {r.emoji && `${r.emoji} `}
+                  {v}
+                </>
+              ),
+            },
+            {
+              title: "Focus Min",
+              dataIndex: "focus_minutes",
+              width: 90,
+              render: (v: number | null) => v ?? "-",
+            },
+            {
+              title: "Scheduled",
+              dataIndex: "scheduled_time",
+              width: 100,
+              render: (v: string | null) => v ?? "-",
+            },
+            { title: "Start Date", dataIndex: "start_date", width: 110 },
+            {
+              title: "Deleted",
+              dataIndex: "deleted_at",
+              width: 150,
+              render: (v: string | null) =>
+                v ? (
+                  <Typography.Text type="danger" style={{ fontSize: 12 }}>
+                    {dayjs(v).format("YYYY-MM-DD HH:mm")}
+                  </Typography.Text>
+                ) : (
+                  "-"
+                ),
+            },
+          ]}
+        />
       ),
     },
     {

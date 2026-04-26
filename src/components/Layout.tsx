@@ -1,26 +1,38 @@
-import { Layout as AntLayout, Menu, Avatar, Dropdown, theme } from "antd";
+import { Layout as AntLayout, Menu, Avatar, Dropdown, Tag, theme } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
+  AppstoreOutlined,
+  SafetyOutlined,
   LogoutOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { useMe } from "../auth/useMe";
 
 const { Header, Sider, Content } = AntLayout;
 
-const menuItems = [
+const baseMenuItems = [
   { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/users", icon: <UserOutlined />, label: "Users" },
+  { key: "/routine-presets", icon: <AppstoreOutlined />, label: "Routine Presets" },
+];
+
+const superAdminMenuItems = [
+  { key: "/admins", icon: <SafetyOutlined />, label: "Admins" },
 ];
 
 export default function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { data: me } = useMe();
   const { token: themeToken } = theme.useToken();
 
   const selectedKey = location.pathname === "/" ? "/" : `/${location.pathname.split("/")[1]}`;
+
+  const menuItems =
+    me?.role === "super_admin" ? [...baseMenuItems, ...superAdminMenuItems] : baseMenuItems;
 
   return (
     <AntLayout style={{ minHeight: "100vh" }}>
@@ -74,6 +86,8 @@ export default function Layout() {
             <div style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: 8 }}>
               <Avatar src={user?.picture} icon={<UserOutlined />} />
               <span>{user?.name}</span>
+              {me?.role === "super_admin" && <Tag color="red">super_admin</Tag>}
+              {me?.role === "admin" && <Tag color="blue">admin</Tag>}
             </div>
           </Dropdown>
         </Header>

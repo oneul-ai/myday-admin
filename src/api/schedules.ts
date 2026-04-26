@@ -20,7 +20,18 @@ export interface Schedule {
   updated_at: string;
 }
 
-export async function getUserSchedules(uid: string, params?: { date?: string; offset?: number; limit?: number }) {
+export async function getUserSchedules(
+  uid: string,
+  params?: {
+    date?: string;
+    provider?: string;
+    type?: string;
+    status?: string;
+    is_completed?: boolean;
+    offset?: number;
+    limit?: number;
+  },
+) {
   const { data } = await client.get<Schedule[]>(`/users/${uid}/schedules`, { params });
   return data;
 }

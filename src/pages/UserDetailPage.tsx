@@ -17,14 +17,110 @@ import {
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getUser, updateUser } from "../api/users";
+import { getUser, getUserPreferences, updateUser, type UserPreferences } from "../api/users";
+
+const WORK_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
+
+function PreferencesPanel({
+  data,
+  loading,
+}: {
+  data: UserPreferences | null | undefined;
+  loading: boolean;
+}) {
+  if (loading) return <Spin />;
+  if (!data) return <Typography.Text type="secondary">No preferences set</Typography.Text>;
+
+  const workDays = (data.work_days ?? [])
+    .slice()
+    .sort(
+      (a, b) =>
+        WORK_DAY_ORDER.indexOf(a.toLowerCase()) - WORK_DAY_ORDER.indexOf(b.toLowerCase()),
+    );
+
+  const renderJson = (value: unknown) => (
+    <pre
+      style={{
+        background: "#fafafa",
+        padding: 12,
+        borderRadius: 4,
+        fontSize: 12,
+        margin: 0,
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+      }}
+    >
+      {JSON.stringify(value, null, 2)}
+    </pre>
+  );
+
+  return (
+    <>
+      <Descriptions column={2} size="small" bordered>
+        <Descriptions.Item label="Job type">{data.job_type ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Planning style">{data.planning_style ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Work days" span={2}>
+          {workDays.length > 0
+            ? workDays.map((d) => (
+                <Tag key={d} style={{ marginRight: 4 }}>
+                  {d.toUpperCase()}
+                </Tag>
+              ))
+            : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Break time">{data.break_time ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Last modified">
+          {data.last_modified_at ? dayjs(data.last_modified_at).format("YYYY-MM-DD HH:mm") : "-"}
+        </Descriptions.Item>
+
+        <Descriptions.Item label="Planning time">{data.planning_time}</Descriptions.Item>
+        <Descriptions.Item label="Reflection time">{data.reflection_time}</Descriptions.Item>
+        <Descriptions.Item label="Planning notification">
+          {data.planning_noti_enabled ? (
+            <Tag color="green">{data.planning_noti_type}</Tag>
+          ) : (
+            <Tag>Disabled</Tag>
+          )}
+        </Descriptions.Item>
+        <Descriptions.Item label="Reflection notification">
+          {data.reflection_noti_enabled ? (
+            <Tag color="green">{data.reflection_noti_type}</Tag>
+          ) : (
+            <Tag>Disabled</Tag>
+          )}
+        </Descriptions.Item>
+      </Descriptions>
+
+      {data.daily_rhythm && (
+        <>
+          <Typography.Title level={5} style={{ marginTop: 24 }}>
+            Daily rhythm
+          </Typography.Title>
+          {renderJson(data.daily_rhythm)}
+        </>
+      )}
+
+      {data.rest_preferences && data.rest_preferences.length > 0 && (
+        <>
+          <Typography.Title level={5} style={{ marginTop: 24 }}>
+            Rest preferences
+          </Typography.Title>
+          {renderJson(data.rest_preferences)}
+        </>
+      )}
+    </>
+  );
+}
 import { getUserTasks, type Task } from "../api/tasks";
 import { getUserDevices, updateDevice, type Device } from "../api/devices";
 import { getUserCalendars, getUserIntegrations } from "../api/calendars";
 import { getUserSchedules } from "../api/schedules";
 import { getUserRoutines, type Routine } from "../api/routines";
+import { useMe } from "../auth/useMe";
 import dayjs from "dayjs";
 import { useState } from "react";
+
+const SUPER_ADMIN_ONLY_TABS = new Set(["tasks", "calendars", "schedules", "routines"]);
 
 export default function UserDetailPage() {
   const { uid } = useParams<{ uid: string }>();
@@ -34,6 +130,8 @@ export default function UserDetailPage() {
   const [form] = Form.useForm();
   const [taskDate, setTaskDate] = useState<string | undefined>();
   const [scheduleDate, setScheduleDate] = useState<string | undefined>();
+  const { data: me } = useMe();
+  const isSuperAdmin = me?.role === "super_admin";
 
   const { data: user, isLoading } = useQuery({
     queryKey: ["user", uid],
@@ -44,7 +142,7 @@ export default function UserDetailPage() {
   const { data: tasks, isLoading: tasksLoading } = useQuery({
     queryKey: ["userTasks", uid, taskDate],
     queryFn: () => getUserTasks(uid!, { date: taskDate }),
-    enabled: !!uid,
+    enabled: !!uid && isSuperAdmin,
   });
 
   const { data: devices, isLoading: devicesLoading } = useQuery({
@@ -56,7 +154,7 @@ export default function UserDetailPage() {
   const { data: calendars, isLoading: calendarsLoading } = useQuery({
     queryKey: ["userCalendars", uid],
     queryFn: () => getUserCalendars(uid!),
-    enabled: !!uid,
+    enabled: !!uid && isSuperAdmin,
   });
 
   const { data: integrations, isLoading: integrationsLoading } = useQuery({
@@ -68,12 +166,18 @@ export default function UserDetailPage() {
   const { data: schedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ["userSchedules", uid, scheduleDate],
     queryFn: () => getUserSchedules(uid!, { date: scheduleDate }),
-    enabled: !!uid,
+    enabled: !!uid && isSuperAdmin,
   });
 
   const { data: routines, isLoading: routinesLoading } = useQuery({
     queryKey: ["userRoutines", uid],
     queryFn: () => getUserRoutines(uid!),
+    enabled: !!uid && isSuperAdmin,
+  });
+
+  const { data: preferences, isLoading: preferencesLoading } = useQuery({
+    queryKey: ["userPreferences", uid],
+    queryFn: () => getUserPreferences(uid!),
     enabled: !!uid,
   });
 
@@ -106,6 +210,11 @@ export default function UserDetailPage() {
   if (!user) return <Typography.Text>User not found</Typography.Text>;
 
   const tabItems = [
+    {
+      key: "preferences",
+      label: "Preferences",
+      children: <PreferencesPanel data={preferences} loading={preferencesLoading} />,
+    },
     {
       key: "tasks",
       label: "Tasks",
@@ -460,7 +569,10 @@ export default function UserDetailPage() {
         </Descriptions>
       </Card>
 
-      <Tabs items={tabItems} style={{ marginTop: 24 }} />
+      <Tabs
+        items={tabItems.filter((t) => isSuperAdmin || !SUPER_ADMIN_ONLY_TABS.has(t.key))}
+        style={{ marginTop: 24 }}
+      />
 
       <Modal
         title="Edit User"

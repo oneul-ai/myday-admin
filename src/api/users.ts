@@ -35,3 +35,24 @@ export async function updateUser(uid: string, body: { name?: string; plan?: stri
   const { data } = await client.patch<User>(`/users/${uid}`, body);
   return data;
 }
+
+export interface UserPreferences {
+  job_type?: string;
+  work_days?: string[];
+  daily_rhythm?: Record<string, unknown>;
+  break_time?: string;
+  planning_style?: string;
+  rest_preferences?: unknown[];
+  planning_time: string;
+  planning_noti_enabled: boolean;
+  planning_noti_type: string;
+  reflection_time: string;
+  reflection_noti_enabled: boolean;
+  reflection_noti_type: string;
+  last_modified_at?: string;
+}
+
+export async function getUserPreferences(uid: string) {
+  const { data } = await client.get<UserPreferences | null>(`/users/${uid}/preferences`);
+  return data;
+}

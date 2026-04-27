@@ -14,6 +14,8 @@ export interface User {
   last_city: string | null;
   last_timezone: string | null;
   last_modified_at: string;
+  deleted_at: string | null;
+  anonymized_at: string | null;
 }
 
 export interface UsersResponse {
@@ -21,7 +23,12 @@ export interface UsersResponse {
   users: User[];
 }
 
-export async function getUsers(params: { q?: string; offset?: number; limit?: number }) {
+export async function getUsers(params: {
+  q?: string;
+  offset?: number;
+  limit?: number;
+  include_deleted?: boolean;
+}) {
   const { data } = await client.get<UsersResponse>("/users", { params });
   return data;
 }

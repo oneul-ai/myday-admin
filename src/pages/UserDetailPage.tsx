@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import {
+  Alert,
   Button,
   Card,
   Descriptions,
@@ -8,6 +9,7 @@ import {
   Form,
   Input,
   Select,
+  Space,
   Spin,
   Table,
   Tabs,
@@ -532,10 +534,16 @@ export default function UserDetailPage() {
       </Button>
 
       <Card
-        title={user.name || user.email}
+        title={
+          <Space>
+            <span>{user.name || user.email}</span>
+            {user.deleted_at && <Tag color="red">탈퇴</Tag>}
+          </Space>
+        }
         extra={
           <Button
             type="primary"
+            disabled={!!user.deleted_at}
             onClick={() => {
               form.setFieldsValue({ name: user.name, plan: user.plan });
               setEditOpen(true);
@@ -545,6 +553,15 @@ export default function UserDetailPage() {
           </Button>
         }
       >
+        {user.deleted_at && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="탈퇴한 회원입니다"
+            description={`PII는 익명화되어 있으며 수정할 수 없습니다. 탈퇴 시각: ${dayjs(user.deleted_at).format("YYYY-MM-DD HH:mm")}`}
+          />
+        )}
         <Descriptions column={2} size="small">
           <Descriptions.Item label="UID">{user.uid}</Descriptions.Item>
           <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
@@ -566,6 +583,11 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Marketing">
             {user.marketing_agreed ? <Tag color="green">Agreed</Tag> : <Tag>No</Tag>}
           </Descriptions.Item>
+          {user.deleted_at && (
+            <Descriptions.Item label="Withdrawn">
+              {dayjs(user.deleted_at).format("YYYY-MM-DD HH:mm")}
+            </Descriptions.Item>
+          )}
         </Descriptions>
       </Card>
 

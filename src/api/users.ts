@@ -1,5 +1,48 @@
 import client from "./client";
 
+export interface WeatherCurrent {
+  cloudCover?: number | null;
+  condition?: string | null;
+  dewPoint?: number | null;
+  feelsLike?: number | null;
+  humidity?: number | null;
+  isDaylight?: boolean | null;
+  pressure?: number | null;
+  pressureTrend?: string | null;
+  symbolName?: string | null;
+  temperature?: number | null;
+  uvIndex?: number | null;
+  visibility?: number | null;
+  windDirection?: number | null;
+  windGust?: number | null;
+  windSpeed?: number | null;
+}
+
+export interface WeatherToday {
+  condition?: string | null;
+  date?: string | null;
+  highTemperature?: number | null;
+  lowTemperature?: number | null;
+  precipitationAmount?: number | null;
+  precipitationChance?: number | null;
+  snowfallAmount?: number | null;
+  sunrise?: string | null;
+  sunset?: string | null;
+  symbolName?: string | null;
+  uvIndexMax?: number | null;
+}
+
+export interface WeatherLocation {
+  locality?: string | null;
+}
+
+export interface WeatherSnapshot {
+  current?: WeatherCurrent;
+  today?: WeatherToday;
+  location?: WeatherLocation;
+  recordedAt?: string;
+}
+
 export interface User {
   uid: string;
   email: string;
@@ -13,6 +56,8 @@ export interface User {
   plan: string;
   last_city: string | null;
   last_timezone: string | null;
+  last_weather_data: WeatherSnapshot | null;
+  last_weather_updated_at: string | null;
   last_modified_at: string;
   deleted_at: string | null;
   anonymized_at: string | null;

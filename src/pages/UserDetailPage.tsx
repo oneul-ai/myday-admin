@@ -19,7 +19,13 @@ import {
 } from "antd";
 import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getUser, getUserPreferences, updateUser, type UserPreferences } from "../api/users";
+import {
+  getUser,
+  getUserPreferences,
+  updateUser,
+  type User,
+  type UserPreferences,
+} from "../api/users";
 
 const WORK_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
 
@@ -113,6 +119,130 @@ function PreferencesPanel({
     </>
   );
 }
+function formatNumber(value: number | null | undefined, suffix = "", digits = 1): string {
+  if (value === null || value === undefined) return "-";
+  return `${value.toFixed(digits)}${suffix}`;
+}
+
+function WeatherPanel({ user }: { user: User }) {
+  const data = user.last_weather_data;
+  const updatedAt = user.last_weather_updated_at;
+
+  if (!data) {
+    return <Typography.Text type="secondary">No weather data</Typography.Text>;
+  }
+
+  const current = data.current ?? {};
+  const today = data.today ?? {};
+  const locality = data.location?.locality;
+
+  return (
+    <>
+      <Descriptions column={2} size="small">
+        <Descriptions.Item label="Locality">{locality ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Last updated">
+          {updatedAt ? dayjs(updatedAt).format("YYYY-MM-DD HH:mm") : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Recorded at">
+          {data.recordedAt ? dayjs(data.recordedAt).format("YYYY-MM-DD HH:mm") : "-"}
+        </Descriptions.Item>
+      </Descriptions>
+
+      <Typography.Title level={5} style={{ marginTop: 24 }}>
+        Current conditions
+      </Typography.Title>
+      <Descriptions column={2} size="small" bordered>
+        <Descriptions.Item label="Condition">
+          {current.condition ?? "-"}
+          {current.symbolName ? ` (${current.symbolName})` : ""}
+        </Descriptions.Item>
+        <Descriptions.Item label="Daylight">
+          {current.isDaylight === undefined || current.isDaylight === null ? (
+            "-"
+          ) : current.isDaylight ? (
+            <Tag color="gold">Day</Tag>
+          ) : (
+            <Tag>Night</Tag>
+          )}
+        </Descriptions.Item>
+        <Descriptions.Item label="Temperature">
+          {formatNumber(current.temperature, "°C")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Feels like">
+          {formatNumber(current.feelsLike, "°C")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Humidity">
+          {current.humidity !== null && current.humidity !== undefined
+            ? `${Math.round(current.humidity * 100)}%`
+            : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Cloud cover">
+          {current.cloudCover !== null && current.cloudCover !== undefined
+            ? `${Math.round(current.cloudCover * 100)}%`
+            : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Dew point">
+          {formatNumber(current.dewPoint, "°C")}
+        </Descriptions.Item>
+        <Descriptions.Item label="UV index">{current.uvIndex ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Pressure">
+          {formatNumber(current.pressure, " mb", 0)}
+          {current.pressureTrend ? ` (${current.pressureTrend})` : ""}
+        </Descriptions.Item>
+        <Descriptions.Item label="Visibility">
+          {formatNumber(current.visibility, " m", 0)}
+        </Descriptions.Item>
+        <Descriptions.Item label="Wind speed">
+          {formatNumber(current.windSpeed, " km/h")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Wind gust">
+          {formatNumber(current.windGust, " km/h")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Wind direction" span={2}>
+          {formatNumber(current.windDirection, "°", 0)}
+        </Descriptions.Item>
+      </Descriptions>
+
+      <Typography.Title level={5} style={{ marginTop: 24 }}>
+        Today's forecast
+      </Typography.Title>
+      <Descriptions column={2} size="small" bordered>
+        <Descriptions.Item label="Date">
+          {today.date ? dayjs(today.date).format("YYYY-MM-DD") : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Condition">
+          {today.condition ?? "-"}
+          {today.symbolName ? ` (${today.symbolName})` : ""}
+        </Descriptions.Item>
+        <Descriptions.Item label="High">
+          {formatNumber(today.highTemperature, "°C")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Low">
+          {formatNumber(today.lowTemperature, "°C")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Precipitation chance">
+          {today.precipitationChance !== null && today.precipitationChance !== undefined
+            ? `${Math.round(today.precipitationChance * 100)}%`
+            : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Precipitation amount">
+          {formatNumber(today.precipitationAmount, " mm")}
+        </Descriptions.Item>
+        <Descriptions.Item label="Snowfall">
+          {formatNumber(today.snowfallAmount, " mm")}
+        </Descriptions.Item>
+        <Descriptions.Item label="UV index max">{today.uvIndexMax ?? "-"}</Descriptions.Item>
+        <Descriptions.Item label="Sunrise">
+          {today.sunrise ? dayjs(today.sunrise).format("HH:mm") : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="Sunset">
+          {today.sunset ? dayjs(today.sunset).format("HH:mm") : "-"}
+        </Descriptions.Item>
+      </Descriptions>
+    </>
+  );
+}
+
 import { getUserTasks, type Task } from "../api/tasks";
 import { getUserDevices, updateDevice, type Device } from "../api/devices";
 import { getUserCalendars, getUserIntegrations } from "../api/calendars";
@@ -216,6 +346,11 @@ export default function UserDetailPage() {
       key: "preferences",
       label: "Preferences",
       children: <PreferencesPanel data={preferences} loading={preferencesLoading} />,
+    },
+    {
+      key: "weather",
+      label: "Weather",
+      children: <WeatherPanel user={user} />,
     },
     {
       key: "tasks",

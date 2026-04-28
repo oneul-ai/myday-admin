@@ -11,6 +11,7 @@ import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import RoutinePresetsPage from "./pages/RoutinePresetsPage";
 import AdminsPage from "./pages/AdminsPage";
+import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -42,6 +43,7 @@ export default function App() {
                   <Route path="/users/:uid" element={<UserDetailPage />} />
                   <Route path="/routine-presets" element={<RoutinePresetsPage />} />
                   <Route path="/admins" element={<AdminsPage />} />
+                  <Route path="/dali/task-recommend" element={<DaliTaskRecommendPage />} />
                 </Route>
               </Routes>
             </BrowserRouter>

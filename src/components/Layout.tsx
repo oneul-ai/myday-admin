@@ -5,6 +5,7 @@ import {
   AppstoreOutlined,
   SafetyOutlined,
   LogoutOutlined,
+  ExperimentOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -16,6 +17,14 @@ const baseMenuItems = [
   { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/users", icon: <UserOutlined />, label: "Users" },
   { key: "/routine-presets", icon: <AppstoreOutlined />, label: "Routine Presets" },
+  {
+    key: "dali",
+    icon: <ExperimentOutlined />,
+    label: "달이 테스트",
+    children: [
+      { key: "/dali/task-recommend", label: "Task 추천" },
+    ],
+  },
 ];
 
 const superAdminMenuItems = [
@@ -29,7 +38,13 @@ export default function Layout() {
   const { data: me } = useMe();
   const { token: themeToken } = theme.useToken();
 
-  const selectedKey = location.pathname === "/" ? "/" : `/${location.pathname.split("/")[1]}`;
+  const selectedKey = location.pathname.startsWith("/dali/")
+    ? location.pathname
+    : location.pathname === "/"
+      ? "/"
+      : `/${location.pathname.split("/")[1]}`;
+
+  const openKeys = location.pathname.startsWith("/dali/") ? ["dali"] : [];
 
   const menuItems =
     me?.role === "super_admin" ? [...baseMenuItems, ...superAdminMenuItems] : baseMenuItems;
@@ -53,8 +68,11 @@ export default function Layout() {
         <Menu
           mode="inline"
           selectedKeys={[selectedKey]}
+          defaultOpenKeys={openKeys}
           items={menuItems}
-          onClick={({ key }) => navigate(key)}
+          onClick={({ key }) => {
+            if (key.startsWith("/")) navigate(key);
+          }}
         />
       </Sider>
       <AntLayout>

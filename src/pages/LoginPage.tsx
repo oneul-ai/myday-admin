@@ -1,7 +1,7 @@
 import { Card, Typography } from "antd";
 import { GoogleLogin } from "@react-oauth/google";
 import { Navigate } from "react-router-dom";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 
 export default function LoginPage() {
   const { user, login } = useAuth();

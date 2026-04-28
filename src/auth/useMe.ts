@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { getMe } from "../api/admins";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 
 export function useMe() {
   const { token } = useAuth();

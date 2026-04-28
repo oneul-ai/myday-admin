@@ -1,12 +1,12 @@
 import { Navigate, useNavigate } from "react-router-dom";
-import { Spin, message } from "antd";
+import { message } from "antd";
 import { useEffect } from "react";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 import { useMe } from "./useMe";
 import type { ReactNode } from "react";
 
 export function AuthGuard({ children }: { children: ReactNode }) {
-  const { user, isLoading, logout } = useAuth();
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { isError, error } = useMe();
 
@@ -19,14 +19,6 @@ export function AuthGuard({ children }: { children: ReactNode }) {
       navigate("/login", { replace: true });
     }
   }, [isError, error, logout, navigate]);
-
-  if (isLoading) {
-    return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-        <Spin size="large" />
-      </div>
-    );
-  }
 
   if (!user) {
     return <Navigate to="/login" replace />;

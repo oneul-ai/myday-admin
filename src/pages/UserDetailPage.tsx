@@ -391,6 +391,15 @@ export default function UserDetailPage() {
                 width: 110,
               },
               {
+                title: "Status",
+                dataIndex: "status",
+                width: 130,
+                render: (v: Task["status"]) => {
+                  const color = v === "ACTIVE" ? "blue" : v === "CANCELED" ? "orange" : "default";
+                  return <Tag color={color}>{v}</Tag>;
+                },
+              },
+              {
                 title: "Completed",
                 dataIndex: "is_completed",
                 width: 90,

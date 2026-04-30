@@ -10,6 +10,7 @@ export interface Task {
   emoji: string | null;
   is_must_do: boolean;
   is_completed: boolean;
+  status: "ACTIVE" | "CANCELED" | "ORIGINAL_DELETED";
   position: number;
   created_by: string;
   device_id: string | null;

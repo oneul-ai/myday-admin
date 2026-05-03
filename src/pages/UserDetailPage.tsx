@@ -391,6 +391,12 @@ export default function UserDetailPage() {
                 width: 110,
               },
               {
+                title: "Scheduled",
+                dataIndex: "scheduled_time",
+                width: 100,
+                render: (v: string | null) => v ?? "-",
+              },
+              {
                 title: "Status",
                 dataIndex: "status",
                 width: 130,

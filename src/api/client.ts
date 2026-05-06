@@ -4,11 +4,32 @@ const client = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL}/admin`,
 });
 
+function isTokenExpired(token: string): boolean {
+  try {
+    const base64 = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    const { exp } = JSON.parse(atob(base64)) as { exp?: number };
+    return typeof exp === "number" && Date.now() >= exp * 1000;
+  } catch {
+    // Malformed — let the server reject so we don't loop on a bad cache.
+    return false;
+  }
+}
+
+function redirectToLogin() {
+  sessionStorage.removeItem("admin_token");
+  if (window.location.pathname !== "/login") {
+    window.location.href = "/login";
+  }
+}
+
 client.interceptors.request.use((config) => {
   const token = sessionStorage.getItem("admin_token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  if (!token) return config;
+  if (isTokenExpired(token)) {
+    redirectToLogin();
+    return Promise.reject(new axios.Cancel("admin token expired"));
   }
+  config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -16,8 +37,7 @@ client.interceptors.response.use(
   (res) => res,
   (error) => {
     if (error.response?.status === 401) {
-      sessionStorage.removeItem("admin_token");
-      window.location.href = "/login";
+      redirectToLogin();
     }
     return Promise.reject(error);
   },

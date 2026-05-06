@@ -9,6 +9,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
+import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
 import RoutinePresetsPage from "./pages/RoutinePresetsPage";
 import AdminsPage from "./pages/AdminsPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
@@ -42,6 +43,10 @@ export default function App() {
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/:uid" element={<UserDetailPage />} />
                   <Route path="/routine-presets" element={<RoutinePresetsPage />} />
+                  <Route
+                    path="/rest-preference-options"
+                    element={<RestPreferenceOptionsPage />}
+                  />
                   <Route path="/admins" element={<AdminsPage />} />
                   <Route path="/dali/task-recommend" element={<DaliTaskRecommendPage />} />
                 </Route>

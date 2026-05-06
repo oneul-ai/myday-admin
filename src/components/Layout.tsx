@@ -3,6 +3,7 @@ import {
   DashboardOutlined,
   UserOutlined,
   AppstoreOutlined,
+  CoffeeOutlined,
   SafetyOutlined,
   LogoutOutlined,
   ExperimentOutlined,
@@ -17,6 +18,11 @@ const baseMenuItems = [
   { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
   { key: "/users", icon: <UserOutlined />, label: "Users" },
   { key: "/routine-presets", icon: <AppstoreOutlined />, label: "Routine Presets" },
+  {
+    key: "/rest-preference-options",
+    icon: <CoffeeOutlined />,
+    label: "Rest Preferences",
+  },
   {
     key: "dali",
     icon: <ExperimentOutlined />,

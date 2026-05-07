@@ -342,7 +342,7 @@ export default function TaskRecommendationsPage() {
         }}
       >
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Task Recommendations
+          온보딩 Task 추천
         </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
           New recommendation

@@ -28,7 +28,8 @@ const baseMenuItems = [
     icon: <ExperimentOutlined />,
     label: "달이 테스트",
     children: [
-      { key: "/dali/task-recommend", label: "Task 추천" },
+      { key: "/dali/task-recommend", label: "체크인 Task 추천" },
+      { key: "/dali/task-recommendations", label: "Task Recommendations" },
     ],
   },
 ];

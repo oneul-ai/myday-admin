@@ -5,7 +5,7 @@ export interface Routine {
   user_uid: string;
   title: string;
   emoji: string | null;
-  focus_minutes: number | null;
+  focus_seconds: number | null;
   time_slot: string;
   scheduled_time: string | null;
   position: number;

@@ -151,7 +151,7 @@ export default function DaliTaskRecommendPage() {
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <Title level={4}>달이 — Task 추천 테스트</Title>
+      <Title level={4}>달이 — 체크인 Task 추천 테스트</Title>
 
       <Card title="1. 유저 & 컨텍스트" size="small">
         <Row gutter={16} align="middle">

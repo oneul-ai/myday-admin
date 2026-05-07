@@ -591,8 +591,8 @@ export default function UserDetailPage() {
               ),
             },
             {
-              title: "Focus Min",
-              dataIndex: "focus_minutes",
+              title: "Focus Sec",
+              dataIndex: "focus_seconds",
               width: 90,
               render: (v: number | null) => v ?? "-",
             },

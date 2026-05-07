@@ -6,7 +6,7 @@ export interface Task {
   time_slot: string;
   scheduled_time: string | null;
   title: string;
-  focus_minutes: number | null;
+  focus_seconds: number | null;
   emoji: string | null;
   is_must_do: boolean;
   is_completed: boolean;

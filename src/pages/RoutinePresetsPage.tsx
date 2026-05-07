@@ -93,7 +93,7 @@ const DEFAULT_LOCALES = ["ko", "en", "zh-Hans", "zh-Hant", "ja"];
 interface FormValues {
   time_slot: string;
   emoji?: string;
-  focus_minutes?: number | null;
+  focus_seconds?: number | null;
   is_active: boolean;
   titles: Record<string, string | undefined>;
 }
@@ -140,9 +140,9 @@ function SortableRow({ preset, onClick }: { preset: RoutinePreset; onClick: () =
       <span style={{ flex: 1 }}>
         {preset.emoji && <span style={{ marginRight: 6 }}>{preset.emoji}</span>}
         <span>{preset.titles?.ko ?? "(no ko title)"}</span>
-        {preset.focus_minutes != null && (
+        {preset.focus_seconds != null && (
           <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-            ({preset.focus_minutes}min)
+            ({preset.focus_seconds}sec)
           </Typography.Text>
         )}
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
@@ -316,7 +316,7 @@ export default function RoutinePresetsPage() {
       const currentTitles = (form.getFieldValue("titles") as Record<string, string>) ?? {};
       form.setFieldsValue({
         emoji: data.emoji ?? undefined,
-        focus_minutes: data.focus_minutes ?? undefined,
+        focus_seconds: data.focus_seconds ?? undefined,
         titles: { ...currentTitles, ...data.titles },
       });
       message.success("Auto-filled");
@@ -356,7 +356,7 @@ export default function RoutinePresetsPage() {
     ? {
         time_slot: editing.time_slot,
         emoji: editing.emoji ?? undefined,
-        focus_minutes: editing.focus_minutes ?? undefined,
+        focus_seconds: editing.focus_seconds ?? undefined,
         is_active: editing.is_active,
         titles: editing.titles,
       }
@@ -380,7 +380,7 @@ export default function RoutinePresetsPage() {
     const body = {
       time_slot: values.time_slot,
       emoji: values.emoji?.trim() || null,
-      focus_minutes: values.focus_minutes ?? null,
+      focus_seconds: values.focus_seconds ?? null,
       is_active: values.is_active,
       titles,
     };
@@ -492,7 +492,7 @@ export default function RoutinePresetsPage() {
                 loading={autofillMutation.isPending}
                 style={{ paddingLeft: 0 }}
               >
-                Auto-fill emoji, focus min, and other languages
+                Auto-fill emoji, focus sec, and other languages
               </Button>
             }
           >
@@ -503,7 +503,7 @@ export default function RoutinePresetsPage() {
             <Form.Item label="Emoji" name="emoji" style={{ flex: "0 0 100px" }}>
               <Input maxLength={10} />
             </Form.Item>
-            <Form.Item label="Focus min" name="focus_minutes" style={{ flex: "0 0 120px" }}>
+            <Form.Item label="Focus sec" name="focus_seconds" style={{ flex: "0 0 120px" }}>
               <InputNumber min={1} style={{ width: "100%" }} />
             </Form.Item>
             <Form.Item label="Active" name="is_active" valuePropName="checked">

@@ -4,7 +4,7 @@ export interface RoutinePreset {
   id: number;
   time_slot: string;
   emoji: string | null;
-  focus_minutes: number | null;
+  focus_seconds: number | null;
   position: number;
   titles: Record<string, string>;
   is_active: boolean;
@@ -21,7 +21,7 @@ export interface RoutinePresetsResponse {
 export interface RoutinePresetCreateInput {
   time_slot: string;
   emoji?: string | null;
-  focus_minutes?: number | null;
+  focus_seconds?: number | null;
   titles: Record<string, string>;
   is_active?: boolean;
 }
@@ -29,7 +29,7 @@ export interface RoutinePresetCreateInput {
 export interface RoutinePresetUpdateInput {
   time_slot?: string;
   emoji?: string | null;
-  focus_minutes?: number | null;
+  focus_seconds?: number | null;
   titles?: Record<string, string>;
   is_active?: boolean;
 }
@@ -68,7 +68,7 @@ export async function reorderRoutinePresets(time_slot: string, ordered_ids: numb
 
 export interface RoutinePresetAutofillResult {
   emoji: string | null;
-  focus_minutes: number | null;
+  focus_seconds: number | null;
   titles: Record<string, string>;
 }
 

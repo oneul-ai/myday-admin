@@ -95,6 +95,7 @@ export interface DaliRecommendGreetingRequest {
   model_id: string;
   system_prompt?: string;
   few_shot?: DaliFewShot[];
+  thinking?: boolean;
 }
 
 export interface DaliRecommendGreetingResponse {

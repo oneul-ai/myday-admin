@@ -12,6 +12,8 @@ import {
   Space,
   Spin,
   Statistic,
+  Switch,
+  Tooltip,
   Typography,
   message,
 } from "antd";
@@ -46,6 +48,7 @@ export default function DaliGreetingRecommendPage() {
   const [systemPromptOverride, setSystemPromptOverride] = useState<string | null>(null);
   const [modelIdOverride, setModelIdOverride] = useState<string | null>(null);
   const [fewShots, setFewShots] = useState<FewShotDraft[]>([]);
+  const [thinking, setThinking] = useState(true);
   const [result, setResult] = useState<DaliRecommendGreetingResponse | null>(null);
 
   const { data: providers, isLoading: providersLoading } = useQuery({
@@ -119,6 +122,7 @@ export default function DaliGreetingRecommendPage() {
         model_id: modelId,
         system_prompt: systemPrompt,
         few_shot: fewShot,
+        thinking,
       });
     },
     onSuccess: (data) => {
@@ -312,6 +316,14 @@ export default function DaliGreetingRecommendPage() {
               }))}
               placeholder="모델 선택"
             />
+          </Col>
+          <Col>
+            <Tooltip title="Gemini 2.5 reasoning. 끄면 thinking_budget=0 으로 응답이 빨라지지만 품질이 떨어질 수 있어요.">
+              <Space size={8}>
+                <Switch checked={thinking} onChange={setThinking} />
+                <Text>Thinking</Text>
+              </Space>
+            </Tooltip>
           </Col>
           <Col>
             <Button

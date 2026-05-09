@@ -49,6 +49,7 @@ export default function DaliGreetingRecommendPage() {
   const [modelIdOverride, setModelIdOverride] = useState<string | null>(null);
   const [fewShots, setFewShots] = useState<FewShotDraft[]>([]);
   const [thinking, setThinking] = useState(true);
+  const [includeReason, setIncludeReason] = useState(true);
   const [result, setResult] = useState<DaliRecommendGreetingResponse | null>(null);
 
   const { data: providers, isLoading: providersLoading } = useQuery({
@@ -123,6 +124,7 @@ export default function DaliGreetingRecommendPage() {
         system_prompt: systemPrompt,
         few_shot: fewShot,
         thinking,
+        include_reason: includeReason,
       });
     },
     onSuccess: (data) => {
@@ -326,6 +328,14 @@ export default function DaliGreetingRecommendPage() {
             </Tooltip>
           </Col>
           <Col>
+            <Tooltip title="headline_reason / sub_title_reason 출력 여부. 끄면 출력 토큰이 줄어 응답이 빨라져요. (운영자 평가용 정보가 사라집니다)">
+              <Space size={8}>
+                <Switch checked={includeReason} onChange={setIncludeReason} />
+                <Text>Include reason</Text>
+              </Space>
+            </Tooltip>
+          </Col>
+          <Col>
             <Button
               type="primary"
               size="large"
@@ -369,14 +379,20 @@ export default function DaliGreetingRecommendPage() {
             </Text>
           </Card>
 
-          <Descriptions column={1} bordered size="small">
-            <Descriptions.Item label="Headline 이유">
-              <Text>{result.result.headline_reason}</Text>
-            </Descriptions.Item>
-            <Descriptions.Item label="Sub title 이유">
-              <Text>{result.result.sub_title_reason}</Text>
-            </Descriptions.Item>
-          </Descriptions>
+          {(result.result.headline_reason || result.result.sub_title_reason) && (
+            <Descriptions column={1} bordered size="small">
+              {result.result.headline_reason && (
+                <Descriptions.Item label="Headline 이유">
+                  <Text>{result.result.headline_reason}</Text>
+                </Descriptions.Item>
+              )}
+              {result.result.sub_title_reason && (
+                <Descriptions.Item label="Sub title 이유">
+                  <Text>{result.result.sub_title_reason}</Text>
+                </Descriptions.Item>
+              )}
+            </Descriptions>
+          )}
 
           <Descriptions
             title="LLM에 보낸 입력"

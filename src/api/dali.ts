@@ -85,9 +85,9 @@ export async function getDaliGreetingContext(uid: string, timezone = "Asia/Seoul
 
 export interface DaliGreetingResult {
   headline: string;
-  headline_reason: string;
   sub_title: string;
-  sub_title_reason: string;
+  headline_reason?: string;
+  sub_title_reason?: string;
 }
 
 export interface DaliRecommendGreetingRequest {
@@ -96,6 +96,7 @@ export interface DaliRecommendGreetingRequest {
   system_prompt?: string;
   few_shot?: DaliFewShot[];
   thinking?: boolean;
+  include_reason?: boolean;
 }
 
 export interface DaliRecommendGreetingResponse {

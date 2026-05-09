@@ -59,6 +59,9 @@ export interface User {
   last_weather_data: WeatherSnapshot | null;
   last_weather_updated_at: string | null;
   last_modified_at: string;
+  last_routine_backfilled_at: string | null;
+  last_schedule_backfilled_at: string | null;
+  last_system_backfilled_at: string | null;
   deleted_at: string | null;
   anonymized_at: string | null;
 }

@@ -80,6 +80,24 @@ export default function UsersPage() {
       width: 140,
       render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
     },
+    {
+      title: "Last Routine Backfill",
+      dataIndex: "last_routine_backfilled_at",
+      width: 160,
+      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
+    },
+    {
+      title: "Last Schedule Backfill",
+      dataIndex: "last_schedule_backfilled_at",
+      width: 160,
+      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
+    },
+    {
+      title: "Last System Backfill",
+      dataIndex: "last_system_backfilled_at",
+      width: 160,
+      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
+    },
   ];
 
   return (

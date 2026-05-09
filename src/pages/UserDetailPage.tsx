@@ -733,6 +733,21 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Marketing">
             {user.marketing_agreed ? <Tag color="green">Agreed</Tag> : <Tag>No</Tag>}
           </Descriptions.Item>
+          <Descriptions.Item label="Last Routine Backfill">
+            {user.last_routine_backfilled_at
+              ? dayjs(user.last_routine_backfilled_at).format("YYYY-MM-DD")
+              : "-"}
+          </Descriptions.Item>
+          <Descriptions.Item label="Last Schedule Backfill">
+            {user.last_schedule_backfilled_at
+              ? dayjs(user.last_schedule_backfilled_at).format("YYYY-MM-DD")
+              : "-"}
+          </Descriptions.Item>
+          <Descriptions.Item label="Last System Backfill">
+            {user.last_system_backfilled_at
+              ? dayjs(user.last_system_backfilled_at).format("YYYY-MM-DD")
+              : "-"}
+          </Descriptions.Item>
           {user.deleted_at && (
             <Descriptions.Item label="Withdrawn">
               {dayjs(user.deleted_at).format("YYYY-MM-DD HH:mm")}

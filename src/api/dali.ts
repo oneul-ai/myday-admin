@@ -62,3 +62,53 @@ export async function recommendTasks(body: DaliRecommendRequest) {
   );
   return data;
 }
+
+export interface DaliGreetingProvidersResponse {
+  models: DaliModel[];
+  default_system_prompt: string;
+  response_schema: Record<string, unknown>;
+}
+
+export async function getDaliGreetingProviders() {
+  const { data } = await client.get<DaliGreetingProvidersResponse>(
+    "/dali/greeting/providers",
+  );
+  return data;
+}
+
+export async function getDaliGreetingContext(uid: string, timezone = "Asia/Seoul") {
+  const { data } = await client.get<DaliContext>(`/dali/greeting/context/${uid}`, {
+    params: { timezone },
+  });
+  return data;
+}
+
+export interface DaliGreetingResult {
+  headline: string;
+  headline_reason: string;
+  sub_title: string;
+  sub_title_reason: string;
+}
+
+export interface DaliRecommendGreetingRequest {
+  context: DaliContext;
+  model_id: string;
+  system_prompt?: string;
+  few_shot?: DaliFewShot[];
+}
+
+export interface DaliRecommendGreetingResponse {
+  result: DaliGreetingResult;
+  latency_ms: number;
+  messages_sent: { role: string; content: string }[];
+  system_prompt_sent: string;
+  model_id: string;
+}
+
+export async function recommendGreeting(body: DaliRecommendGreetingRequest) {
+  const { data } = await client.post<DaliRecommendGreetingResponse>(
+    "/dali/recommend-greeting",
+    body,
+  );
+  return data;
+}

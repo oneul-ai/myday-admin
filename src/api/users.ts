@@ -61,7 +61,6 @@ export interface User {
   last_modified_at: string;
   last_routine_backfilled_at: string | null;
   last_schedule_backfilled_at: string | null;
-  last_system_backfilled_at: string | null;
   deleted_at: string | null;
   anonymized_at: string | null;
 }
@@ -98,12 +97,13 @@ export interface UserPreferences {
   break_time?: string;
   planning_style?: string;
   rest_preferences?: unknown[];
-  planning_time: string;
-  planning_noti_enabled: boolean;
-  planning_noti_type: string;
-  reflection_time: string;
-  reflection_noti_enabled: boolean;
-  reflection_noti_type: string;
+  check_in_time: string;
+  check_in_noti_enabled: boolean;
+  check_in_noti_type: string;
+  check_out_time: string;
+  check_out_noti_enabled: boolean;
+  check_out_noti_type: string;
+  task_noti_enabled: boolean;
   last_modified_at?: string;
 }
 

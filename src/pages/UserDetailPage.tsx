@@ -81,21 +81,24 @@ function PreferencesPanel({
           {data.last_modified_at ? dayjs(data.last_modified_at).format("YYYY-MM-DD HH:mm") : "-"}
         </Descriptions.Item>
 
-        <Descriptions.Item label="Planning time">{data.planning_time}</Descriptions.Item>
-        <Descriptions.Item label="Reflection time">{data.reflection_time}</Descriptions.Item>
-        <Descriptions.Item label="Planning notification">
-          {data.planning_noti_enabled ? (
-            <Tag color="green">{data.planning_noti_type}</Tag>
+        <Descriptions.Item label="Check-in time">{data.check_in_time}</Descriptions.Item>
+        <Descriptions.Item label="Check-out time">{data.check_out_time}</Descriptions.Item>
+        <Descriptions.Item label="Check-in notification">
+          {data.check_in_noti_enabled ? (
+            <Tag color="green">{data.check_in_noti_type}</Tag>
           ) : (
             <Tag>Disabled</Tag>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label="Reflection notification">
-          {data.reflection_noti_enabled ? (
-            <Tag color="green">{data.reflection_noti_type}</Tag>
+        <Descriptions.Item label="Check-out notification">
+          {data.check_out_noti_enabled ? (
+            <Tag color="green">{data.check_out_noti_type}</Tag>
           ) : (
             <Tag>Disabled</Tag>
           )}
+        </Descriptions.Item>
+        <Descriptions.Item label="Task notification" span={2}>
+          {data.task_noti_enabled ? <Tag color="green">Enabled</Tag> : <Tag>Disabled</Tag>}
         </Descriptions.Item>
       </Descriptions>
 
@@ -384,6 +387,16 @@ export default function UserDetailPage() {
                     {v}
                   </>
                 ),
+              },
+              {
+                title: "Type",
+                dataIndex: "type",
+                width: 110,
+                render: (v: Task["type"]) => {
+                  const color =
+                    v === "SCHEDULED" ? "purple" : v === "ROUTINE" ? "geekblue" : "default";
+                  return <Tag color={color}>{v}</Tag>;
+                },
               },
               {
                 title: "Time Slot",
@@ -741,11 +754,6 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Last Schedule Backfill">
             {user.last_schedule_backfilled_at
               ? dayjs(user.last_schedule_backfilled_at).format("YYYY-MM-DD")
-              : "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Last System Backfill">
-            {user.last_system_backfilled_at
-              ? dayjs(user.last_system_backfilled_at).format("YYYY-MM-DD")
               : "-"}
           </Descriptions.Item>
           {user.deleted_at && (

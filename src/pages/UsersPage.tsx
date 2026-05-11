@@ -92,12 +92,6 @@ export default function UsersPage() {
       width: 160,
       render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
     },
-    {
-      title: "Last System Backfill",
-      dataIndex: "last_system_backfilled_at",
-      width: 160,
-      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
-    },
   ];
 
   return (

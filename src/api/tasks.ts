@@ -3,6 +3,7 @@ import client from "./client";
 export interface Task {
   id: number;
   date: string;
+  type: "SCHEDULED" | "ROUTINE" | "MANUAL";
   time_slot: string;
   scheduled_time: string | null;
   title: string;

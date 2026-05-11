@@ -52,14 +52,13 @@ import {
   type RoutinePresetUpdateInput,
 } from "../api/routinePresets";
 
-const TIME_SLOT_ORDER = ["MORNING", "AFTERNOON", "EVENING", "ANYTIME", "SPECIFIC"] as const;
+const TIME_SLOT_ORDER = ["MORNING", "AFTERNOON", "EVENING", "ANYTIME"] as const;
 
 const TIME_SLOT_LABELS: Record<string, string> = {
   ANYTIME: "Anytime",
   MORNING: "Morning",
   AFTERNOON: "Afternoon",
   EVENING: "Evening",
-  SPECIFIC: "Specific",
 };
 
 const TIME_SLOT_COLORS: Record<string, string> = {
@@ -67,7 +66,6 @@ const TIME_SLOT_COLORS: Record<string, string> = {
   MORNING: "gold",
   AFTERNOON: "orange",
   EVENING: "purple",
-  SPECIFIC: "cyan",
 };
 
 const TIME_SLOT_OPTIONS = TIME_SLOT_ORDER.map((v) => ({

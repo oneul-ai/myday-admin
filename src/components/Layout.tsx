@@ -4,6 +4,7 @@ import {
   UserOutlined,
   AppstoreOutlined,
   CoffeeOutlined,
+  GlobalOutlined,
   SafetyOutlined,
   LogoutOutlined,
   ExperimentOutlined,
@@ -22,6 +23,16 @@ const baseMenuItems = [
     key: "/rest-preference-options",
     icon: <CoffeeOutlined />,
     label: "Rest Preferences",
+  },
+  {
+    key: "i18n",
+    icon: <GlobalOutlined />,
+    label: "i18n",
+    children: [
+      { key: "/i18n/keys", label: "Keys" },
+      { key: "/i18n/publish", label: "Publish" },
+      { key: "/i18n/sync", label: "Sync" },
+    ],
   },
   {
     key: "dali",
@@ -46,13 +57,16 @@ export default function Layout() {
   const { data: me } = useMe();
   const { token: themeToken } = theme.useToken();
 
-  const selectedKey = location.pathname.startsWith("/dali/")
-    ? location.pathname
-    : location.pathname === "/"
-      ? "/"
-      : `/${location.pathname.split("/")[1]}`;
+  const selectedKey =
+    location.pathname.startsWith("/dali/") || location.pathname.startsWith("/i18n/")
+      ? location.pathname
+      : location.pathname === "/"
+        ? "/"
+        : `/${location.pathname.split("/")[1]}`;
 
-  const openKeys = location.pathname.startsWith("/dali/") ? ["dali"] : [];
+  const openKeys: string[] = [];
+  if (location.pathname.startsWith("/dali/")) openKeys.push("dali");
+  if (location.pathname.startsWith("/i18n/")) openKeys.push("i18n");
 
   const menuItems =
     me?.role === "super_admin" ? [...baseMenuItems, ...superAdminMenuItems] : baseMenuItems;

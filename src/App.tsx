@@ -15,6 +15,9 @@ import AdminsPage from "./pages/AdminsPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
 import TaskRecommendationsPage from "./pages/TaskRecommendationsPage";
+import I18nSyncPage from "./pages/i18n/SyncPage";
+import I18nKeysPage from "./pages/i18n/KeysPage";
+import I18nPublishPage from "./pages/i18n/PublishPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -50,6 +53,9 @@ export default function App() {
                     element={<RestPreferenceOptionsPage />}
                   />
                   <Route path="/admins" element={<AdminsPage />} />
+                  <Route path="/i18n/keys" element={<I18nKeysPage />} />
+                  <Route path="/i18n/publish" element={<I18nPublishPage />} />
+                  <Route path="/i18n/sync" element={<I18nSyncPage />} />
                   <Route path="/dali/task-recommend" element={<DaliTaskRecommendPage />} />
                   <Route
                     path="/dali/greeting-recommend"

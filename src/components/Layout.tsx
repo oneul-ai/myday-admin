@@ -8,6 +8,7 @@ import {
   SafetyOutlined,
   LogoutOutlined,
   ExperimentOutlined,
+  MessageOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -24,6 +25,7 @@ const baseMenuItems = [
     icon: <CoffeeOutlined />,
     label: "Rest Preferences",
   },
+  { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
   {
     key: "i18n",
     icon: <GlobalOutlined />,

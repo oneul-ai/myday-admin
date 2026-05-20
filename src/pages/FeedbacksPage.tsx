@@ -13,6 +13,8 @@ import {
 import type { TablePaginationConfig } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezonePlugin from "dayjs/plugin/timezone";
 import {
   getFeedback,
   getFeedbacks,
@@ -21,6 +23,15 @@ import {
   type FeedbackStatus,
   type FeedbackType,
 } from "../api/feedbacks";
+
+dayjs.extend(utc);
+dayjs.extend(timezonePlugin);
+
+function formatUserLocalTime(iso: string, tz: string | null): string | null {
+  if (!tz) return null;
+  const m = dayjs(iso).tz(tz);
+  return m.isValid() ? m.format("YYYY-MM-DD HH:mm:ss") : null;
+}
 
 const TYPE_OPTIONS: { value: FeedbackType; label: string; color: string }[] = [
   { value: "FEATURE_REQUEST", label: "기능 제안", color: "blue" },
@@ -277,7 +288,24 @@ export default function FeedbacksPage() {
                 {
                   key: "created_at",
                   label: "보낸 시각",
-                  children: dayjs(detail.created_at).format("YYYY-MM-DD HH:mm:ss"),
+                  children: (() => {
+                    const userLocal = formatUserLocalTime(detail.created_at, detail.timezone);
+                    return (
+                      <Space direction="vertical" size={0}>
+                        <span>{dayjs(detail.created_at).format("YYYY-MM-DD HH:mm:ss")}</span>
+                        {userLocal && (
+                          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                            유저 기준 {userLocal} ({detail.timezone})
+                          </Typography.Text>
+                        )}
+                      </Space>
+                    );
+                  })(),
+                },
+                {
+                  key: "timezone",
+                  label: "타임존",
+                  children: detail.timezone ?? "-",
                 },
                 {
                   key: "platform",

@@ -17,6 +17,7 @@ export interface Feedback {
   os_version: string | null;
   device_model: string | null;
   locale: string | null;
+  timezone: string | null;
   status: FeedbackStatus;
   created_at: string;
 }

@@ -12,6 +12,7 @@ import UserDetailPage from "./pages/UserDetailPage";
 import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
 import RoutinePresetsPage from "./pages/RoutinePresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
+import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
@@ -54,6 +55,7 @@ export default function App() {
                     element={<RestPreferenceOptionsPage />}
                   />
                   <Route path="/feedbacks" element={<FeedbacksPage />} />
+                  <Route path="/metrics/hourly" element={<HourlyMetricsPage />} />
                   <Route path="/admins" element={<AdminsPage />} />
                   <Route path="/i18n/keys" element={<I18nKeysPage />} />
                   <Route path="/i18n/publish" element={<I18nPublishPage />} />

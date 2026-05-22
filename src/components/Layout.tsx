@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   ExperimentOutlined,
   MessageOutlined,
+  LineChartOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -26,6 +27,7 @@ const baseMenuItems = [
     label: "Rest Preferences",
   },
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
+  { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "시간대별 활동" },
   {
     key: "i18n",
     icon: <GlobalOutlined />,
@@ -60,7 +62,9 @@ export default function Layout() {
   const { token: themeToken } = theme.useToken();
 
   const selectedKey =
-    location.pathname.startsWith("/dali/") || location.pathname.startsWith("/i18n/")
+    location.pathname.startsWith("/dali/") ||
+    location.pathname.startsWith("/i18n/") ||
+    location.pathname.startsWith("/metrics/")
       ? location.pathname
       : location.pathname === "/"
         ? "/"

@@ -23,8 +23,3 @@ export async function getUserTasks(uid: string, params?: { date?: string; offset
   const { data } = await client.get<Task[]>(`/users/${uid}/tasks`, { params });
   return data;
 }
-
-export async function updateTask(taskId: number, body: { title?: string; date?: string; time_slot?: string; is_completed?: boolean; position?: number }) {
-  const { data } = await client.patch(`/tasks/${taskId}`, body);
-  return data;
-}

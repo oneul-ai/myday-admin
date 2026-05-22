@@ -114,9 +114,9 @@ export default function HourlyMetricsPage() {
   const columns = useMemo(
     () => [
       {
-        title: "시각 (KST)",
+        title: "윈도우 시작 (KST)",
         dataIndex: "window_start",
-        width: 140,
+        width: 160,
         render: (v: string) => dayjs(v).tz(KST).format("MM/DD HH:00"),
       },
       {
@@ -137,10 +137,10 @@ export default function HourlyMetricsPage() {
 
   return (
     <>
-      <Typography.Title level={4}>시간대별 활동</Typography.Title>
+      <Typography.Title level={4}>활동 다이제스트</Typography.Title>
       <Typography.Paragraph type="secondary" style={{ marginTop: -8 }}>
-        매시 정시에 myday-worker 가 직전 1시간 윈도우의 카운트를 저장한 결과.
-        빈 시각은 워커가 그 시점에 못 돌았다는 뜻 (장애 시그널).
+        0/8/16시 KST 마다 myday-worker 가 직전 8시간 윈도우의 카운트를 저장한 결과.
+        빈 슬롯은 워커가 그 시점에 못 돌았다는 뜻 (장애 시그널).
       </Typography.Paragraph>
 
       <Space style={{ marginBottom: 16 }} wrap>
@@ -157,7 +157,7 @@ export default function HourlyMetricsPage() {
 
       <Card size="small" style={{ marginBottom: 16 }}>
         <Space size="large" wrap>
-          <Tooltip title="구간 내 시간대별 활성 유저 카운트의 단순 합 — 같은 사람이 여러 시간에 활성이면 중복 가산됨.">
+          <Tooltip title="구간 내 윈도우별 활성 유저 카운트의 단순 합 — 같은 사람이 여러 윈도우에 활성이면 중복 가산됨.">
             <Statistic title="활성 유저 (합산)" value={totals.active_users} />
           </Tooltip>
           <Statistic title="가입" value={totals.signups} />
@@ -221,7 +221,7 @@ export default function HourlyMetricsPage() {
         pagination={{
           pageSize: 50,
           showSizeChanger: true,
-          showTotal: (total) => `Total ${total} hours`,
+          showTotal: (total) => `Total ${total} windows`,
         }}
       />
     </>

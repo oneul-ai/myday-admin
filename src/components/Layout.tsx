@@ -27,7 +27,7 @@ const baseMenuItems = [
     label: "Rest Preferences",
   },
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
-  { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "시간대별 활동" },
+  { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "활동 다이제스트" },
   {
     key: "i18n",
     icon: <GlobalOutlined />,

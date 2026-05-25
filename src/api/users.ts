@@ -111,3 +111,24 @@ export async function getUserPreferences(uid: string) {
   const { data } = await client.get<UserPreferences | null>(`/users/${uid}/preferences`);
   return data;
 }
+
+export interface UserNotificationSettings {
+  check_in_enabled: boolean;
+  check_in_type: string;
+  check_out_enabled: boolean;
+  check_out_type: string;
+  task_noti_minutes: number[];
+  task_at_start_enabled: boolean;
+  task_before_5min_enabled: boolean;
+  weekly_summary_enabled: boolean;
+  feature_news_enabled: boolean;
+  events_benefits_enabled: boolean;
+  last_modified_at?: string;
+}
+
+export async function getUserNotificationSettings(uid: string) {
+  const { data } = await client.get<UserNotificationSettings | null>(
+    `/users/${uid}/notification-settings`,
+  );
+  return data;
+}

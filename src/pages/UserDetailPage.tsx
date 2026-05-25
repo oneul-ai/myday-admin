@@ -22,9 +22,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getUser,
   getUserPreferences,
+  getUserNotificationSettings,
   updateUser,
   type User,
   type UserPreferences,
+  type UserNotificationSettings,
 } from "../api/users";
 
 const WORK_DAY_ORDER = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"];
@@ -122,6 +124,60 @@ function PreferencesPanel({
     </>
   );
 }
+
+function NotificationSettingsPanel({
+  data,
+  loading,
+}: {
+  data: UserNotificationSettings | null | undefined;
+  loading: boolean;
+}) {
+  if (loading) return <Spin />;
+  if (!data)
+    return <Typography.Text type="secondary">No notification settings set</Typography.Text>;
+
+  const renderToggle = (enabled: boolean, type?: string) =>
+    enabled ? <Tag color="green">{type ?? "Enabled"}</Tag> : <Tag>Disabled</Tag>;
+
+  return (
+    <Descriptions column={2} size="small" bordered>
+      <Descriptions.Item label="Check-in">
+        {renderToggle(data.check_in_enabled, data.check_in_type)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Check-out">
+        {renderToggle(data.check_out_enabled, data.check_out_type)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Task at start">
+        {renderToggle(data.task_at_start_enabled)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Task 5 min before">
+        {renderToggle(data.task_before_5min_enabled)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Task noti minutes" span={2}>
+        {data.task_noti_minutes.length > 0
+          ? data.task_noti_minutes.map((m) => (
+              <Tag key={m}>{m === 0 ? "At start" : `${m} min before`}</Tag>
+            ))
+          : <Tag>Off</Tag>}
+      </Descriptions.Item>
+      <Descriptions.Item label="Weekly summary">
+        {renderToggle(data.weekly_summary_enabled)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Feature news">
+        {renderToggle(data.feature_news_enabled)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Events & benefits">
+        {renderToggle(data.events_benefits_enabled)}
+      </Descriptions.Item>
+      <Descriptions.Item label="Last modified">
+        {data.last_modified_at
+          ? dayjs(data.last_modified_at).format("YYYY-MM-DD HH:mm")
+          : "-"}
+      </Descriptions.Item>
+    </Descriptions>
+  );
+}
+
 function formatNumber(value: number | null | undefined, suffix = "", digits = 1): string {
   if (value === null || value === undefined) return "-";
   return `${value.toFixed(digits)}${suffix}`;
@@ -316,6 +372,12 @@ export default function UserDetailPage() {
     enabled: !!uid,
   });
 
+  const { data: notificationSettings, isLoading: notificationSettingsLoading } = useQuery({
+    queryKey: ["userNotificationSettings", uid],
+    queryFn: () => getUserNotificationSettings(uid!),
+    enabled: !!uid,
+  });
+
   const updateMutation = useMutation({
     mutationFn: (body: { name?: string; plan?: string }) => updateUser(uid!, body),
     onSuccess: () => {
@@ -349,6 +411,16 @@ export default function UserDetailPage() {
       key: "preferences",
       label: "Preferences",
       children: <PreferencesPanel data={preferences} loading={preferencesLoading} />,
+    },
+    {
+      key: "notification",
+      label: "Notification",
+      children: (
+        <NotificationSettingsPanel
+          data={notificationSettings}
+          loading={notificationSettingsLoading}
+        />
+      ),
     },
     {
       key: "weather",

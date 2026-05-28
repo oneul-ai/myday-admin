@@ -801,7 +801,7 @@ export default function UserDetailPage() {
           <Descriptions.Item label="UID">{user.uid}</Descriptions.Item>
           <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
           <Descriptions.Item label="Plan">
-            <Tag color={user.plan === "STARTER" ? "default" : "blue"}>{user.plan}</Tag>
+            <Tag color={user.plan === "FREE" ? "default" : "blue"}>{user.plan}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="City">{user.last_city ?? "-"}</Descriptions.Item>
           <Descriptions.Item label="Timezone">{user.last_timezone ?? "-"}</Descriptions.Item>
@@ -859,8 +859,8 @@ export default function UserDetailPage() {
           <Form.Item name="plan" label="Plan" rules={[{ required: true }]}>
             <Select
               options={[
-                { label: "STARTER", value: "STARTER" },
-                { label: "PRO", value: "PRO" },
+                { label: "FREE", value: "FREE" },
+                { label: "PLUS", value: "PLUS" },
               ]}
             />
           </Form.Item>

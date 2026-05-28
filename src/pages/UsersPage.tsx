@@ -52,7 +52,7 @@ export default function UsersPage() {
       dataIndex: "plan",
       width: 100,
       render: (plan: string) => {
-        const color = plan === "STARTER" ? "default" : "blue";
+        const color = plan === "FREE" ? "default" : "blue";
         return <Tag color={color}>{plan}</Tag>;
       },
     },

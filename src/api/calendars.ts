@@ -1,16 +1,18 @@
 import client from "./client";
 
-export interface Calendar {
+export interface IntegrationExternalCalendar {
+  id: number;
   user_uid: string;
+  integration_id: number;
+  external_calendar_id: string;
   provider: string;
-  id: string;
   summary: string;
   description: string | null;
   color: string | null;
   is_primary: boolean;
   access_role: string | null;
   status: string;
-  subscribed: boolean;
+  is_subscribed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -29,7 +31,10 @@ export interface Integration {
 }
 
 export async function getUserCalendars(uid: string, params?: { provider?: string }) {
-  const { data } = await client.get<Calendar[]>(`/users/${uid}/calendars`, { params });
+  const { data } = await client.get<IntegrationExternalCalendar[]>(
+    `/users/${uid}/calendars`,
+    { params },
+  );
   return data;
 }
 

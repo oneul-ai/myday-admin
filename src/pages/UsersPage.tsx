@@ -81,13 +81,13 @@ export default function UsersPage() {
       render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
     },
     {
-      title: "Last Routine Backfill",
+      title: "Last Repeat-Task Backfill",
       dataIndex: "last_routine_backfilled_at",
       width: 160,
       render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
     },
     {
-      title: "Last Schedule Backfill",
+      title: "Last Event Backfill",
       dataIndex: "last_schedule_backfilled_at",
       width: 160,
       render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),

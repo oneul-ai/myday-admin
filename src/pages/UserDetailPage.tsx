@@ -305,8 +305,8 @@ function WeatherPanel({ user }: { user: User }) {
 import { getUserTasks, type Task } from "../api/tasks";
 import { getUserDevices, updateDevice, type Device } from "../api/devices";
 import { getUserCalendars, getUserIntegrations } from "../api/calendars";
-import { getUserSchedules } from "../api/schedules";
-import { getUserRoutines, type Routine } from "../api/routines";
+import { getUserEvents } from "../api/schedules";
+import { getUserRepeatTasks, type RepeatTask } from "../api/routines";
 import { useMe } from "../auth/useMe";
 import dayjs from "dayjs";
 import { useState } from "react";
@@ -356,13 +356,13 @@ export default function UserDetailPage() {
 
   const { data: schedules, isLoading: schedulesLoading } = useQuery({
     queryKey: ["userSchedules", uid, scheduleDate],
-    queryFn: () => getUserSchedules(uid!, { date: scheduleDate }),
+    queryFn: () => getUserEvents(uid!, { date: scheduleDate }),
     enabled: !!uid && isSuperAdmin,
   });
 
   const { data: routines, isLoading: routinesLoading } = useQuery({
     queryKey: ["userRoutines", uid],
-    queryFn: () => getUserRoutines(uid!),
+    queryFn: () => getUserRepeatTasks(uid!),
     enabled: !!uid && isSuperAdmin,
   });
 
@@ -465,21 +465,21 @@ export default function UserDetailPage() {
                 dataIndex: "type",
                 width: 110,
                 render: (v: Task["type"]) => {
-                  const color =
-                    v === "SCHEDULED" ? "purple" : v === "ROUTINE" ? "geekblue" : "default";
+                  const color = v === "integration" ? "purple" : "default";
                   return <Tag color={color}>{v}</Tag>;
                 },
               },
               {
-                title: "Time Slot",
-                dataIndex: "time_slot",
-                width: 110,
+                title: "Start",
+                dataIndex: "start_at",
+                width: 150,
+                render: (v: string | null) => (v ? dayjs(v).format("MM-DD HH:mm") : "-"),
               },
               {
-                title: "Scheduled",
-                dataIndex: "scheduled_time",
-                width: 100,
-                render: (v: string | null) => v ?? "-",
+                title: "End",
+                dataIndex: "end_at",
+                width: 150,
+                render: (v: string | null) => (v ? dayjs(v).format("MM-DD HH:mm") : "-"),
               },
               {
                 title: "Status",
@@ -503,9 +503,10 @@ export default function UserDetailPage() {
                 render: (v: boolean) => (v ? <Tag color="red">Yes</Tag> : <Tag>No</Tag>),
               },
               {
-                title: "Created By",
-                dataIndex: "created_by",
-                width: 100,
+                title: "Repeat",
+                dataIndex: "is_repeat_task",
+                width: 90,
+                render: (v: boolean) => (v ? <Tag color="geekblue">Yes</Tag> : <Tag>No</Tag>),
               },
             ]}
           />
@@ -514,12 +515,12 @@ export default function UserDetailPage() {
     },
     {
       key: "calendars",
-      label: "Calendars",
+      label: "External Calendars",
       children: (
         <Table
           dataSource={calendars}
           loading={calendarsLoading}
-          rowKey={(r) => `${r.provider}-${r.id}`}
+          rowKey="id"
           size="small"
           pagination={false}
           columns={[
@@ -553,7 +554,7 @@ export default function UserDetailPage() {
             },
             {
               title: "Subscribed",
-              dataIndex: "subscribed",
+              dataIndex: "is_subscribed",
               width: 100,
               render: (v: boolean) => (v ? <Tag color="green">Yes</Tag> : <Tag>No</Tag>),
             },
@@ -605,7 +606,7 @@ export default function UserDetailPage() {
     },
     {
       key: "schedules",
-      label: "Schedules",
+      label: "External Events",
       children: (
         <>
           <DatePicker
@@ -649,15 +650,23 @@ export default function UserDetailPage() {
     },
     {
       key: "routines",
-      label: "Routines",
+      label: "Repeat Tasks",
       children: (
-        <Table<Routine>
+        <Table<RepeatTask>
           dataSource={routines}
           loading={routinesLoading}
           rowKey="id"
           size="small"
           pagination={false}
           columns={[
+            {
+              title: "Frequency",
+              dataIndex: "frequency",
+              width: 110,
+              render: (v: string, r: RepeatTask) => (
+                <Tag>{r.rrule_interval > 1 ? `${v} ×${r.rrule_interval}` : v}</Tag>
+              ),
+            },
             {
               title: "Time Slot",
               dataIndex: "time_slot",
@@ -668,7 +677,7 @@ export default function UserDetailPage() {
             {
               title: "Title",
               dataIndex: "title",
-              render: (v: string, r: Routine) => (
+              render: (v: string, r: RepeatTask) => (
                 <>
                   {r.emoji && `${r.emoji} `}
                   {v}
@@ -818,12 +827,12 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Marketing">
             {user.marketing_agreed ? <Tag color="green">Agreed</Tag> : <Tag>No</Tag>}
           </Descriptions.Item>
-          <Descriptions.Item label="Last Routine Backfill">
+          <Descriptions.Item label="Last Repeat-Task Backfill">
             {user.last_routine_backfilled_at
               ? dayjs(user.last_routine_backfilled_at).format("YYYY-MM-DD")
               : "-"}
           </Descriptions.Item>
-          <Descriptions.Item label="Last Schedule Backfill">
+          <Descriptions.Item label="Last Event Backfill">
             {user.last_schedule_backfilled_at
               ? dayjs(user.last_schedule_backfilled_at).format("YYYY-MM-DD")
               : "-"}

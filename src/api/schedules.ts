@@ -1,11 +1,13 @@
 import client from "./client";
 
-export interface Schedule {
+export interface IntegrationExternalEvent {
   id: number;
-  type: string;
+  user_uid: string;
+  integration_id: number;
+  integration_external_calendar_id: number | null;
+  event_id: string;
   provider: string;
-  external_id: string;
-  calendar_id: string | null;
+  type: string;
   title: string;
   description: string | null;
   location: string | null;
@@ -20,7 +22,7 @@ export interface Schedule {
   updated_at: string;
 }
 
-export async function getUserSchedules(
+export async function getUserEvents(
   uid: string,
   params?: {
     date?: string;
@@ -32,6 +34,9 @@ export async function getUserSchedules(
     limit?: number;
   },
 ) {
-  const { data } = await client.get<Schedule[]>(`/users/${uid}/schedules`, { params });
+  const { data } = await client.get<IntegrationExternalEvent[]>(
+    `/users/${uid}/schedules`,
+    { params },
+  );
   return data;
 }

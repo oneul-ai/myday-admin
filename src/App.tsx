@@ -10,7 +10,7 @@ import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
-import RoutinePresetsPage from "./pages/RoutinePresetsPage";
+import HabitPresetsPage from "./pages/HabitPresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
 import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
@@ -49,7 +49,7 @@ export default function App() {
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/users" element={<UsersPage />} />
                   <Route path="/users/:uid" element={<UserDetailPage />} />
-                  <Route path="/routine-presets" element={<RoutinePresetsPage />} />
+                  <Route path="/habit-presets" element={<HabitPresetsPage />} />
                   <Route
                     path="/rest-preference-options"
                     element={<RestPreferenceOptionsPage />}

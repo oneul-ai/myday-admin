@@ -42,15 +42,15 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
-  autofillRoutinePreset,
-  createRoutinePreset,
-  deleteRoutinePreset,
-  getRoutinePresets,
-  reorderRoutinePresets,
-  updateRoutinePreset,
-  type RoutinePreset,
-  type RoutinePresetUpdateInput,
-} from "../api/routinePresets";
+  autofillHabitPreset,
+  createHabitPreset,
+  deleteHabitPreset,
+  getHabitPresets,
+  reorderHabitPresets,
+  updateHabitPreset,
+  type HabitPreset,
+  type HabitPresetUpdateInput,
+} from "../api/habitPresets";
 
 const TIME_SLOT_ORDER = ["MORNING", "AFTERNOON", "EVENING", "ANYTIME"] as const;
 
@@ -96,7 +96,7 @@ interface FormValues {
   titles: Record<string, string | undefined>;
 }
 
-function SortableRow({ preset, onClick }: { preset: RoutinePreset; onClick: () => void }) {
+function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preset.id,
   });
@@ -156,9 +156,9 @@ function TimeSlotSection({
   onRowClick,
 }: {
   timeSlot: string;
-  presets: RoutinePreset[];
+  presets: HabitPreset[];
   onReorder: (timeSlot: string, ordered: number[]) => void;
-  onRowClick: (preset: RoutinePreset) => void;
+  onRowClick: (preset: HabitPreset) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -204,19 +204,19 @@ function TimeSlotSection({
   );
 }
 
-export default function RoutinePresetsPage() {
+export default function HabitPresetsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("active");
   const [modalOpen, setModalOpen] = useState(false);
-  const [editing, setEditing] = useState<RoutinePreset | null>(null);
+  const [editing, setEditing] = useState<HabitPreset | null>(null);
   const [form] = Form.useForm<FormValues>();
 
-  const queryKey = ["routine-presets", { filter }] as const;
+  const queryKey = ["habit-presets", { filter }] as const;
 
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: () =>
-      getRoutinePresets({
+      getHabitPresets({
         is_active: filter === "active",
         limit: 200,
       }),
@@ -225,7 +225,7 @@ export default function RoutinePresetsPage() {
   const supportedLocales = data?.supported_locales ?? DEFAULT_LOCALES;
 
   const grouped = useMemo(() => {
-    const map: Record<string, RoutinePreset[]> = {};
+    const map: Record<string, HabitPreset[]> = {};
     for (const ts of TIME_SLOT_ORDER) map[ts] = [];
     for (const p of data?.presets ?? []) {
       if (!map[p.time_slot]) map[p.time_slot] = [];
@@ -236,9 +236,9 @@ export default function RoutinePresetsPage() {
 
   const reorderMutation = useMutation({
     mutationFn: ({ time_slot, ordered_ids }: { time_slot: string; ordered_ids: number[] }) =>
-      reorderRoutinePresets(time_slot, ordered_ids),
+      reorderHabitPresets(time_slot, ordered_ids),
     onMutate: async ({ time_slot, ordered_ids }) => {
-      await queryClient.cancelQueries({ queryKey: ["routine-presets"] });
+      await queryClient.cancelQueries({ queryKey: ["habit-presets"] });
       const previous = queryClient.getQueryData(queryKey);
       queryClient.setQueryData(queryKey, (old: typeof data) => {
         if (!old) return old;
@@ -263,15 +263,15 @@ export default function RoutinePresetsPage() {
       message.error(detail ?? "Reorder failed");
     },
     onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ["routine-presets"] });
+      queryClient.invalidateQueries({ queryKey: ["habit-presets"] });
     },
   });
 
   const createMutation = useMutation({
-    mutationFn: createRoutinePreset,
+    mutationFn: createHabitPreset,
     onSuccess: () => {
       message.success("Created");
-      queryClient.invalidateQueries({ queryKey: ["routine-presets"] });
+      queryClient.invalidateQueries({ queryKey: ["habit-presets"] });
       closeModal();
     },
     onError: (err: unknown) => {
@@ -281,11 +281,11 @@ export default function RoutinePresetsPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, body }: { id: number; body: RoutinePresetUpdateInput }) =>
-      updateRoutinePreset(id, body),
+    mutationFn: ({ id, body }: { id: number; body: HabitPresetUpdateInput }) =>
+      updateHabitPreset(id, body),
     onSuccess: () => {
       message.success("Updated");
-      queryClient.invalidateQueries({ queryKey: ["routine-presets"] });
+      queryClient.invalidateQueries({ queryKey: ["habit-presets"] });
       closeModal();
     },
     onError: (err: unknown) => {
@@ -295,10 +295,10 @@ export default function RoutinePresetsPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: deleteRoutinePreset,
+    mutationFn: deleteHabitPreset,
     onSuccess: () => {
       message.success("Deleted");
-      queryClient.invalidateQueries({ queryKey: ["routine-presets"] });
+      queryClient.invalidateQueries({ queryKey: ["habit-presets"] });
       closeModal();
     },
     onError: (err: unknown) => {
@@ -309,7 +309,7 @@ export default function RoutinePresetsPage() {
 
   const autofillMutation = useMutation({
     mutationFn: ({ ko_title, time_slot }: { ko_title: string; time_slot?: string }) =>
-      autofillRoutinePreset(ko_title, time_slot),
+      autofillHabitPreset(ko_title, time_slot),
     onSuccess: (data) => {
       const currentTitles = (form.getFieldValue("titles") as Record<string, string>) ?? {};
       form.setFieldsValue({
@@ -340,7 +340,7 @@ export default function RoutinePresetsPage() {
     setModalOpen(true);
   };
 
-  const openDetailModal = (p: RoutinePreset) => {
+  const openDetailModal = (p: HabitPreset) => {
     setEditing(p);
     setModalOpen(true);
   };

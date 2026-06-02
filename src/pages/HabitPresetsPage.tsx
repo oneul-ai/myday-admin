@@ -404,7 +404,7 @@ export default function HabitPresetsPage() {
         }}
       >
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Routine Presets
+          Habit Presets
         </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
           New preset

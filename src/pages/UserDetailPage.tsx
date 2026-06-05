@@ -470,6 +470,20 @@ export default function UserDetailPage() {
                 },
               },
               {
+                title: "Calendar ID",
+                dataIndex: "external_calendar_id",
+                width: 110,
+                render: (v: number | null, r: Task) =>
+                  r.type === "integration" ? (v ?? "-") : "-",
+              },
+              {
+                title: "Event ID",
+                dataIndex: "external_event_id",
+                width: 110,
+                render: (v: number | null, r: Task) =>
+                  r.type === "integration" ? (v ?? "-") : "-",
+              },
+              {
                 title: "Start",
                 dataIndex: "start_at",
                 width: 150,
@@ -622,6 +636,7 @@ export default function UserDetailPage() {
             size="small"
             pagination={false}
             columns={[
+              { title: "Event ID", dataIndex: "event_id", width: 200 },
               { title: "Date", dataIndex: "date", width: 110 },
               { title: "Title", dataIndex: "title" },
               { title: "Type", dataIndex: "type", width: 100 },

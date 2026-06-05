@@ -16,6 +16,7 @@ export interface Task {
   is_linked: boolean;
   is_repeat_task: boolean;
   is_commended_by_dali: boolean;
+  external_calendar_id: number | null;
   external_event_id: number | null;
   repeat_task_id: number | null;
   habit_preset_id: number | null;

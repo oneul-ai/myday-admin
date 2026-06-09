@@ -11,6 +11,7 @@ import {
   Select,
   Space,
   Spin,
+  Switch,
   Table,
   Tabs,
   Tag,
@@ -320,6 +321,7 @@ export default function UserDetailPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [form] = Form.useForm();
   const [taskDate, setTaskDate] = useState<string | undefined>();
+  const [includeDeletedTasks, setIncludeDeletedTasks] = useState(false);
   const [scheduleDate, setScheduleDate] = useState<string | undefined>();
   const { data: me } = useMe();
   const isSuperAdmin = me?.role === "super_admin";
@@ -331,8 +333,9 @@ export default function UserDetailPage() {
   });
 
   const { data: tasks, isLoading: tasksLoading } = useQuery({
-    queryKey: ["userTasks", uid, taskDate],
-    queryFn: () => getUserTasks(uid!, { date: taskDate }),
+    queryKey: ["userTasks", uid, taskDate, includeDeletedTasks],
+    queryFn: () =>
+      getUserTasks(uid!, { date: taskDate, include_deleted: includeDeletedTasks || undefined }),
     enabled: !!uid && isSuperAdmin,
   });
 
@@ -432,12 +435,17 @@ export default function UserDetailPage() {
       label: "Tasks",
       children: (
         <>
-          <DatePicker
-            style={{ marginBottom: 16 }}
-            onChange={(d) => setTaskDate(d ? d.format("YYYY-MM-DD") : undefined)}
-            allowClear
-            placeholder="Filter by date"
-          />
+          <Space style={{ marginBottom: 16 }} size="large" wrap>
+            <DatePicker
+              onChange={(d) => setTaskDate(d ? d.format("YYYY-MM-DD") : undefined)}
+              allowClear
+              placeholder="Filter by date"
+            />
+            <Space>
+              <Switch checked={includeDeletedTasks} onChange={setIncludeDeletedTasks} />
+              <span>삭제된 Task 포함</span>
+            </Space>
+          </Space>
           <Table<Task>
             dataSource={tasks}
             loading={tasksLoading}
@@ -500,9 +508,22 @@ export default function UserDetailPage() {
                 dataIndex: "status",
                 width: 130,
                 render: (v: Task["status"]) => {
-                  const color = v === "ACTIVE" ? "blue" : v === "CANCELED" ? "orange" : "default";
+                  const color =
+                    v === "ACTIVE"
+                      ? "blue"
+                      : v === "CANCELED"
+                        ? "orange"
+                        : v === "DELETED"
+                          ? "red"
+                          : "default";
                   return <Tag color={color}>{v}</Tag>;
                 },
+              },
+              {
+                title: "Deleted At",
+                dataIndex: "deleted_at",
+                width: 150,
+                render: (v: string | null) => (v ? dayjs(v).format("MM-DD HH:mm") : "-"),
               },
               {
                 title: "Completed",

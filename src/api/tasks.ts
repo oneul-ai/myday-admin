@@ -9,7 +9,7 @@ export interface Task {
   emoji: string | null;
   is_must_do: boolean;
   is_completed: boolean;
-  status: "ACTIVE" | "CANCELED" | "ORIGINAL_DELETED";
+  status: "ACTIVE" | "CANCELED" | "ORIGINAL_DELETED" | "DELETED";
   position: number;
   start_at: string | null;
   end_at: string | null;
@@ -22,9 +22,13 @@ export interface Task {
   habit_preset_id: number | null;
   created_at: string;
   updated_at: string;
+  deleted_at: string | null;
 }
 
-export async function getUserTasks(uid: string, params?: { date?: string; offset?: number; limit?: number }) {
+export async function getUserTasks(
+  uid: string,
+  params?: { date?: string; include_deleted?: boolean; offset?: number; limit?: number },
+) {
   const { data } = await client.get<Task[]>(`/users/${uid}/tasks`, { params });
   return data;
 }

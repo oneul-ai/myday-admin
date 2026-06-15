@@ -492,6 +492,12 @@ export default function UserDetailPage() {
                   r.type === "integration" ? (v ?? "-") : "-",
               },
               {
+                title: "Time Slot",
+                dataIndex: "time_slot",
+                width: 110,
+                render: (v: string) => <Tag>{v}</Tag>,
+              },
+              {
                 title: "Start",
                 dataIndex: "start_at",
                 width: 150,

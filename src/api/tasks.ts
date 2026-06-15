@@ -11,6 +11,7 @@ export interface Task {
   is_completed: boolean;
   status: "ACTIVE" | "CANCELED" | "ORIGINAL_DELETED" | "DELETED";
   position: number;
+  time_slot: string;
   start_at: string | null;
   end_at: string | null;
   is_linked: boolean;

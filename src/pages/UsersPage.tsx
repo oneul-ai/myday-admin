@@ -57,16 +57,9 @@ export default function UsersPage() {
       },
     },
     {
-      title: "City",
-      dataIndex: "last_city",
-      width: 120,
-      render: (v: string | null) => v ?? "-",
-    },
-    {
-      title: "Timezone",
-      dataIndex: "last_timezone",
-      width: 140,
-      render: (v: string | null) => v ?? "-",
+      title: "User UID",
+      dataIndex: "uid",
+      width: 280,
     },
     {
       title: "Joined",
@@ -79,18 +72,6 @@ export default function UsersPage() {
       dataIndex: "last_signed_in_at",
       width: 140,
       render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
-    },
-    {
-      title: "Last Repeat-Task Backfill",
-      dataIndex: "last_routine_backfilled_at",
-      width: 160,
-      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
-    },
-    {
-      title: "Last Event Backfill",
-      dataIndex: "last_schedule_backfilled_at",
-      width: 160,
-      render: (v: string | null) => (v ? dayjs(v).format("YYYY-MM-DD") : "-"),
     },
   ];
 

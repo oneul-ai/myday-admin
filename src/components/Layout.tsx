@@ -20,7 +20,6 @@ const { Header, Sider, Content } = AntLayout;
 
 const baseMenuItems = [
   { key: "/", icon: <DashboardOutlined />, label: "Dashboard" },
-  { key: "/users", icon: <UserOutlined />, label: "Users" },
   { key: "/habit-presets", icon: <AppstoreOutlined />, label: "Habit Presets" },
   {
     key: "/rest-preference-options",
@@ -52,6 +51,7 @@ const baseMenuItems = [
 ];
 
 const superAdminMenuItems = [
+  { key: "/users", icon: <UserOutlined />, label: "Users" },
   { key: "/admins", icon: <SafetyOutlined />, label: "Admins" },
 ];
 

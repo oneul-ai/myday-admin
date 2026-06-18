@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConfigProvider } from "antd";
 import { AuthProvider } from "./auth/AuthContext";
 import { AuthGuard } from "./auth/AuthGuard";
+import { SuperAdminRoute } from "./auth/SuperAdminRoute";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
@@ -47,8 +48,22 @@ export default function App() {
                   }
                 >
                   <Route path="/" element={<DashboardPage />} />
-                  <Route path="/users" element={<UsersPage />} />
-                  <Route path="/users/:uid" element={<UserDetailPage />} />
+                  <Route
+                    path="/users"
+                    element={
+                      <SuperAdminRoute>
+                        <UsersPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/users/:uid"
+                    element={
+                      <SuperAdminRoute>
+                        <UserDetailPage />
+                      </SuperAdminRoute>
+                    }
+                  />
                   <Route path="/habit-presets" element={<HabitPresetsPage />} />
                   <Route
                     path="/rest-preference-options"

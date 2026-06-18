@@ -1,0 +1,39 @@
+name: Deploy to Firebase Hosting (dev)
+
+on:
+  push:
+    branches: [develop]
+
+# Allow only one concurrent deploy; newer pushes cancel in-progress runs.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: true
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          # Public build-time config (also shipped in the client bundle).
+          VITE_API_BASE_URL_DEV: https://dev.myday.simpl.run
+          VITE_API_BASE_URL_PROD: https://myday.simpl.run
+          VITE_GOOGLE_CLIENT_ID: 352139380443-nj8pv4fpkv3r0qj28hn189voqn5mqmkq.apps.googleusercontent.com
+
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: ${{ secrets.GITHUB_TOKEN }}
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SIMPLRUN_FB_DEV }}
+          channelId: live
+          projectId: simplrun-fb-dev

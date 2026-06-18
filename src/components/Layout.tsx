@@ -1,4 +1,4 @@
-import { Layout as AntLayout, Menu, Avatar, Dropdown, Tag, theme } from "antd";
+import { Layout as AntLayout, Menu, Avatar, Dropdown, Tag, Select, theme } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
@@ -14,6 +14,7 @@ import {
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { useMe } from "../auth/useMe";
+import { getApiEnv, setApiEnv, type ApiEnv } from "../api/apiEnv";
 
 const { Header, Sider, Content } = AntLayout;
 
@@ -77,6 +78,12 @@ export default function Layout() {
   const menuItems =
     me?.role === "super_admin" ? [...baseMenuItems, ...superAdminMenuItems] : baseMenuItems;
 
+  const handleApiEnvChange = (env: ApiEnv) => {
+    setApiEnv(env);
+    // Reload so all cached queries re-fetch against the selected API.
+    window.location.reload();
+  };
+
   return (
     <AntLayout style={{ minHeight: "100vh" }}>
       <Sider theme="light" breakpoint="lg" collapsedWidth={60}>
@@ -111,8 +118,18 @@ export default function Layout() {
             display: "flex",
             justifyContent: "flex-end",
             alignItems: "center",
+            gap: 16,
           }}
         >
+          <Select
+            value={getApiEnv()}
+            onChange={handleApiEnvChange}
+            style={{ width: 110 }}
+            options={[
+              { value: "dev", label: "DEV" },
+              { value: "prod", label: "PROD" },
+            ]}
+          />
           <Dropdown
             menu={{
               items: [

@@ -1,8 +1,7 @@
 import axios from "axios";
+import { getApiBaseUrl } from "./apiEnv";
 
-const client = axios.create({
-  baseURL: `${import.meta.env.VITE_API_BASE_URL}/admin`,
-});
+const client = axios.create();
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -23,6 +22,7 @@ function redirectToLogin() {
 }
 
 client.interceptors.request.use((config) => {
+  config.baseURL = `${getApiBaseUrl()}/admin`;
   const token = sessionStorage.getItem("admin_token");
   if (!token) return config;
   if (isTokenExpired(token)) {

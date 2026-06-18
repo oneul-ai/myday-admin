@@ -19,9 +19,11 @@ import {
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  CheckCircleOutlined,
   DeleteOutlined,
   HolderOutlined,
   PlusOutlined,
+  StopOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import {
@@ -89,7 +91,6 @@ const JOB_TYPE_LABELS: Record<string, string> = {
 };
 
 // `null` 센티넬 = 공통 풀 (job_type IS NULL).
-const JOB_TYPE_FILTER_VALUE_ALL = "all";
 const JOB_TYPE_FILTER_VALUE_COMMON = "null";
 
 const LOCALE_LABELS: Record<string, string> = {
@@ -111,27 +112,9 @@ interface FormValues {
   titles: Record<string, string | undefined>;
 }
 
-function jobTypeTag(jobType: string | null) {
-  if (jobType == null) {
-    return <Tag color="default">공통</Tag>;
-  }
-  return <Tag color="blue">{JOB_TYPE_LABELS[jobType] ?? jobType}</Tag>;
-}
-
-function SortableRow({
-  preset,
-  draggable,
-  showJobTag,
-  onClick,
-}: {
-  preset: HabitPreset;
-  draggable: boolean;
-  showJobTag: boolean;
-  onClick: () => void;
-}) {
+function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preset.id,
-    disabled: !draggable,
   });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -153,25 +136,21 @@ function SortableRow({
       }}
       onClick={onClick}
     >
-      {draggable ? (
-        <span
-          {...attributes}
-          {...listeners}
-          onClick={(e) => e.stopPropagation()}
-          style={{
-            cursor: "grab",
-            color: "#bbb",
-            marginRight: 12,
-            padding: 4,
-            touchAction: "none",
-          }}
-          aria-label="Drag to reorder"
-        >
-          <HolderOutlined />
-        </span>
-      ) : (
-        <span style={{ marginRight: 12, padding: 4 }} />
-      )}
+      <span
+        {...attributes}
+        {...listeners}
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          cursor: "grab",
+          color: "#bbb",
+          marginRight: 12,
+          padding: 4,
+          touchAction: "none",
+        }}
+        aria-label="Drag to reorder"
+      >
+        <HolderOutlined />
+      </span>
       <span style={{ flex: 1 }}>
         {preset.emoji && <span style={{ marginRight: 6 }}>{preset.emoji}</span>}
         <span>{preset.titles?.ko ?? "(no ko title)"}</span>
@@ -180,7 +159,41 @@ function SortableRow({
             ({preset.focus_seconds}sec)
           </Typography.Text>
         )}
-        {showJobTag && <span style={{ marginLeft: 8 }}>{jobTypeTag(preset.job_type)}</span>}
+        {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
+      </span>
+    </div>
+  );
+}
+
+// 공통 풀 행 — job_type 필터에 토글로 함께 보여주는 읽기 전용 컨텍스트.
+// 정렬은 (job_type, time_slot) 그룹 단위라 다른 그룹인 공통 행은 드래그 불가.
+function CommonRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        padding: "10px 12px",
+        background: "#fafafa",
+        borderBottom: "1px solid #f0f0f0",
+        cursor: "pointer",
+        opacity: preset.is_active ? 0.85 : 0.5,
+      }}
+      onClick={onClick}
+    >
+      {/* SortableRow 의 드래그 핸들 자리에 맞춰 정렬 */}
+      <span style={{ width: 16, marginRight: 12 }} />
+      <span style={{ flex: 1 }}>
+        {preset.emoji && <span style={{ marginRight: 6 }}>{preset.emoji}</span>}
+        <span>{preset.titles?.ko ?? "(no ko title)"}</span>
+        {preset.focus_seconds != null && (
+          <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
+            ({preset.focus_seconds}sec)
+          </Typography.Text>
+        )}
+        <Tag color="blue" style={{ marginLeft: 8 }}>
+          공통
+        </Tag>
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
       </span>
     </div>
@@ -190,17 +203,17 @@ function SortableRow({
 function TimeSlotSection({
   timeSlot,
   presets,
-  reorderEnabled,
-  showJobTag,
+  commonPresets,
   onReorder,
   onRowClick,
+  onAdd,
 }: {
   timeSlot: string;
   presets: HabitPreset[];
-  reorderEnabled: boolean;
-  showJobTag: boolean;
+  commonPresets: HabitPreset[];
   onReorder: (timeSlot: string, ordered: number[]) => void;
   onRowClick: (preset: HabitPreset) => void;
+  onAdd: (timeSlot: string) => void;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -226,27 +239,38 @@ function TimeSlotSection({
       title={
         <Space>
           <Tag color={TIME_SLOT_COLORS[timeSlot] ?? "default"}>{timeSlot}</Tag>
-          <Typography.Text type="secondary">{presets.length} items</Typography.Text>
+          <Typography.Text type="secondary">
+            {presets.length} items
+            {commonPresets.length > 0 ? ` (+${commonPresets.length} 공통)` : ""}
+          </Typography.Text>
         </Space>
+      }
+      extra={
+        <Button
+          type="text"
+          size="small"
+          icon={<PlusOutlined />}
+          onClick={() => onAdd(timeSlot)}
+          aria-label={`Add preset to ${timeSlot}`}
+        />
       }
       styles={{ body: { padding: 0 } }}
     >
-      {presets.length === 0 ? (
+      {presets.length === 0 && commonPresets.length === 0 ? (
         <div style={{ padding: 16, color: "#999", textAlign: "center" }}>No presets</div>
       ) : (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={presets.map((p) => p.id)} strategy={verticalListSortingStrategy}>
-            {presets.map((p) => (
-              <SortableRow
-                key={p.id}
-                preset={p}
-                draggable={reorderEnabled}
-                showJobTag={showJobTag}
-                onClick={() => onRowClick(p)}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+        <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={presets.map((p) => p.id)} strategy={verticalListSortingStrategy}>
+              {presets.map((p) => (
+                <SortableRow key={p.id} preset={p} onClick={() => onRowClick(p)} />
+              ))}
+            </SortableContext>
+          </DndContext>
+          {commonPresets.map((p) => (
+            <CommonRow key={p.id} preset={p} onClick={() => onRowClick(p)} />
+          ))}
+        </>
       )}
     </Card>
   );
@@ -255,26 +279,41 @@ function TimeSlotSection({
 export default function HabitPresetsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("active");
-  const [jobFilter, setJobFilter] = useState<string>(JOB_TYPE_FILTER_VALUE_ALL);
+  const [jobFilter, setJobFilter] = useState<string>(JOB_TYPE_FILTER_VALUE_COMMON);
+  // 특정 job_type 선택 시 공통 풀을 함께 보여주는 토글 (기본 OFF).
+  const [showCommon, setShowCommon] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  // 섹션의 + 버튼으로 생성할 때 미리 채워질 time_slot.
+  const [createTimeSlot, setCreateTimeSlot] = useState<string>("ANYTIME");
   const [editing, setEditing] = useState<HabitPreset | null>(null);
   const [form] = Form.useForm<FormValues>();
 
-  // reorder 는 단일 (job_type, time_slot) 그룹 안에서만 의미가 있으므로
-  // 특정 job(또는 공통)으로 좁혀졌을 때만 드래그 정렬을 허용한다.
-  const reorderEnabled = jobFilter !== JOB_TYPE_FILTER_VALUE_ALL;
-  const showJobTag = jobFilter === JOB_TYPE_FILTER_VALUE_ALL;
-
   const queryKey = ["habit-presets", { filter, jobFilter }] as const;
 
+  // 필터는 항상 단일 (job_type | 공통) 그룹을 가리키므로 그 그룹의 항목만 조회한다.
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: () =>
       getHabitPresets({
-        job_type: jobFilter === JOB_TYPE_FILTER_VALUE_ALL ? undefined : jobFilter,
+        job_type: jobFilter,
         is_active: filter === "active",
         limit: 200,
       }),
+  });
+
+  // 공통 풀은 특정 job_type 을 선택했고 토글이 켜졌을 때만 추가로 조회한다.
+  const showCommonEffective = showCommon && jobFilter !== JOB_TYPE_FILTER_VALUE_COMMON;
+
+  // queryKey 를 공통 필터 뷰와 동일하게 맞춰 캐시를 공유한다.
+  const { data: commonData } = useQuery({
+    queryKey: ["habit-presets", { filter, jobFilter: JOB_TYPE_FILTER_VALUE_COMMON }] as const,
+    queryFn: () =>
+      getHabitPresets({
+        job_type: JOB_TYPE_FILTER_VALUE_COMMON,
+        is_active: filter === "active",
+        limit: 200,
+      }),
+    enabled: showCommonEffective,
   });
 
   const supportedLocales = data?.supported_locales ?? DEFAULT_LOCALES;
@@ -290,9 +329,19 @@ export default function HabitPresetsPage() {
     return map;
   }, [data]);
 
+  const groupedCommon = useMemo(() => {
+    const map: Record<string, HabitPreset[]> = {};
+    for (const ts of TIME_SLOT_ORDER) map[ts] = [];
+    if (!showCommonEffective) return map;
+    for (const p of commonData?.presets ?? []) {
+      if (!map[p.time_slot]) map[p.time_slot] = [];
+      map[p.time_slot].push(p);
+    }
+    return map;
+  }, [commonData, showCommonEffective]);
+
   const jobTypeFilterOptions = useMemo(
     () => [
-      { value: JOB_TYPE_FILTER_VALUE_ALL, label: "All jobs" },
       { value: JOB_TYPE_FILTER_VALUE_COMMON, label: "공통 (NULL)" },
       ...validJobTypes.map((v) => ({ value: v, label: JOB_TYPE_LABELS[v] ?? v })),
     ],
@@ -415,8 +464,9 @@ export default function HabitPresetsPage() {
     autofillMutation.mutate({ ko_title: ko.trim(), time_slot });
   };
 
-  const openCreateModal = () => {
+  const openCreateModal = (timeSlot: string = "ANYTIME") => {
     setEditing(null);
+    setCreateTimeSlot(timeSlot);
     setModalOpen(true);
   };
 
@@ -430,13 +480,9 @@ export default function HabitPresetsPage() {
     setEditing(null);
   };
 
-  // 생성 시 현재 job 필터를 기본 job_type 으로 미리 채운다 (All jobs → 공통).
+  // 생성 시 현재 job 필터를 기본 job_type 으로 미리 채운다 (공통 → "__null__").
   const defaultJobType =
-    jobFilter === JOB_TYPE_FILTER_VALUE_ALL
-      ? "__null__"
-      : jobFilter === JOB_TYPE_FILTER_VALUE_COMMON
-        ? "__null__"
-        : jobFilter;
+    jobFilter === JOB_TYPE_FILTER_VALUE_COMMON ? "__null__" : jobFilter;
 
   // Form Select 는 null 을 직접 다루기 까다로워 "__null__" 센티넬로 표현한다.
   const initialValues: FormValues = editing
@@ -450,7 +496,7 @@ export default function HabitPresetsPage() {
       }
     : {
         job_type: defaultJobType,
-        time_slot: "ANYTIME",
+        time_slot: createTimeSlot,
         is_active: true,
         titles: {},
       };
@@ -485,6 +531,13 @@ export default function HabitPresetsPage() {
     if (editing) deleteMutation.mutate(editing.id);
   };
 
+  // 상세 폼에서 활성/비활성을 한 번에 토글 (폼 전체 저장 없이 is_active 만).
+  const handleToggleActive = () => {
+    if (editing) {
+      updateMutation.mutate({ id: editing.id, body: { is_active: !editing.is_active } });
+    }
+  };
+
   return (
     <>
       <div
@@ -498,7 +551,7 @@ export default function HabitPresetsPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Habit Presets
         </Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openCreateModal}>
+        <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>
           New preset
         </Button>
       </div>
@@ -511,10 +564,11 @@ export default function HabitPresetsPage() {
           style={{ width: 200 }}
         />
         <Segmented options={FILTER_OPTIONS} value={filter} onChange={(v) => setFilter(String(v))} />
-        {!reorderEnabled && (
-          <Typography.Text type="secondary">
-            드래그 정렬은 특정 직업/공통으로 필터하면 사용할 수 있어요
-          </Typography.Text>
+        {jobFilter !== JOB_TYPE_FILTER_VALUE_COMMON && (
+          <Space size={6}>
+            <Switch checked={showCommon} onChange={setShowCommon} size="small" />
+            <Typography.Text type="secondary">공통 함께 보기</Typography.Text>
+          </Space>
         )}
       </Space>
 
@@ -527,8 +581,7 @@ export default function HabitPresetsPage() {
               <TimeSlotSection
                 timeSlot={ts}
                 presets={grouped[ts] ?? []}
-                reorderEnabled={reorderEnabled}
-                showJobTag={showJobTag}
+                commonPresets={groupedCommon[ts] ?? []}
                 onReorder={(time_slot, ordered_ids) =>
                   reorderMutation.mutate({
                     job_type:
@@ -538,6 +591,7 @@ export default function HabitPresetsPage() {
                   })
                 }
                 onRowClick={openDetailModal}
+                onAdd={openCreateModal}
               />
             </Col>
           ))}
@@ -552,20 +606,29 @@ export default function HabitPresetsPage() {
         destroyOnClose
         footer={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>
+            <Space>
               {editing && (
-                <Popconfirm
-                  title="Delete this preset?"
-                  onConfirm={handleDelete}
-                  okText="Delete"
-                  okButtonProps={{ danger: true }}
-                >
-                  <Button danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
-                    Delete
+                <>
+                  <Popconfirm
+                    title="Delete this preset?"
+                    onConfirm={handleDelete}
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                  <Button
+                    icon={editing.is_active ? <StopOutlined /> : <CheckCircleOutlined />}
+                    onClick={handleToggleActive}
+                    loading={updateMutation.isPending}
+                  >
+                    {editing.is_active ? "Inactivate" : "Activate"}
                   </Button>
-                </Popconfirm>
+                </>
               )}
-            </span>
+            </Space>
             <Space>
               <Button onClick={closeModal}>Cancel</Button>
               <Button

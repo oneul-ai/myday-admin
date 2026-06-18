@@ -2,6 +2,7 @@ import client from "./client";
 
 export interface HabitPreset {
   id: number;
+  job_type: string | null;
   time_slot: string;
   emoji: string | null;
   focus_seconds: number | null;
@@ -15,10 +16,12 @@ export interface HabitPreset {
 export interface HabitPresetsResponse {
   total: number;
   supported_locales: string[];
+  valid_job_types: string[];
   presets: HabitPreset[];
 }
 
 export interface HabitPresetCreateInput {
+  job_type: string | null;
   time_slot: string;
   emoji?: string | null;
   focus_seconds?: number | null;
@@ -27,6 +30,7 @@ export interface HabitPresetCreateInput {
 }
 
 export interface HabitPresetUpdateInput {
+  job_type?: string | null;
   time_slot?: string;
   emoji?: string | null;
   focus_seconds?: number | null;
@@ -34,7 +38,11 @@ export interface HabitPresetUpdateInput {
   is_active?: boolean;
 }
 
+// `job_type=null` 센티넬을 사용해 공통 풀(NULL) 행만 필터링한다.
+export type JobTypeFilter = string | "null";
+
 export async function getHabitPresets(params?: {
+  job_type?: JobTypeFilter;
   time_slot?: string;
   is_active?: boolean;
   offset?: number;
@@ -58,8 +66,14 @@ export async function deleteHabitPreset(id: number) {
   await client.delete(`/habit-presets/${id}`);
 }
 
-export async function reorderHabitPresets(time_slot: string, ordered_ids: number[]) {
+// 공통 풀은 job_type=null 로 호출 — 서버에 "null" 센티넬로 전달한다.
+export async function reorderHabitPresets(
+  job_type: string | null,
+  time_slot: string,
+  ordered_ids: number[],
+) {
   const { data } = await client.post<{ updated: number }>("/habit-presets/reorder", {
+    job_type: job_type ?? "null",
     time_slot,
     ordered_ids,
   });

@@ -78,6 +78,20 @@ const FILTER_OPTIONS = [
   { value: "inactive", label: "Inactive" },
 ];
 
+const JOB_TYPE_LABELS: Record<string, string> = {
+  office_worker: "회사원",
+  student: "학생",
+  freelancer: "프리랜서",
+  business_owner: "사업가",
+  shift_worker: "교대근무자",
+  homemaker: "육아/가사",
+  job_seeker: "시험/취업 준비",
+};
+
+// `null` 센티넬 = 공통 풀 (job_type IS NULL).
+const JOB_TYPE_FILTER_VALUE_ALL = "all";
+const JOB_TYPE_FILTER_VALUE_COMMON = "null";
+
 const LOCALE_LABELS: Record<string, string> = {
   ko: "한국어 (ko)",
   en: "English (en)",
@@ -89,6 +103,7 @@ const LOCALE_LABELS: Record<string, string> = {
 const DEFAULT_LOCALES = ["ko", "en", "zh-Hans", "zh-Hant", "ja"];
 
 interface FormValues {
+  job_type: string; // "__null__" 센티넬 = 공통
   time_slot: string;
   emoji?: string;
   focus_seconds?: number | null;
@@ -96,9 +111,27 @@ interface FormValues {
   titles: Record<string, string | undefined>;
 }
 
-function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
+function jobTypeTag(jobType: string | null) {
+  if (jobType == null) {
+    return <Tag color="default">공통</Tag>;
+  }
+  return <Tag color="blue">{JOB_TYPE_LABELS[jobType] ?? jobType}</Tag>;
+}
+
+function SortableRow({
+  preset,
+  draggable,
+  showJobTag,
+  onClick,
+}: {
+  preset: HabitPreset;
+  draggable: boolean;
+  showJobTag: boolean;
+  onClick: () => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preset.id,
+    disabled: !draggable,
   });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -120,21 +153,25 @@ function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => 
       }}
       onClick={onClick}
     >
-      <span
-        {...attributes}
-        {...listeners}
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          cursor: "grab",
-          color: "#bbb",
-          marginRight: 12,
-          padding: 4,
-          touchAction: "none",
-        }}
-        aria-label="Drag to reorder"
-      >
-        <HolderOutlined />
-      </span>
+      {draggable ? (
+        <span
+          {...attributes}
+          {...listeners}
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            cursor: "grab",
+            color: "#bbb",
+            marginRight: 12,
+            padding: 4,
+            touchAction: "none",
+          }}
+          aria-label="Drag to reorder"
+        >
+          <HolderOutlined />
+        </span>
+      ) : (
+        <span style={{ marginRight: 12, padding: 4 }} />
+      )}
       <span style={{ flex: 1 }}>
         {preset.emoji && <span style={{ marginRight: 6 }}>{preset.emoji}</span>}
         <span>{preset.titles?.ko ?? "(no ko title)"}</span>
@@ -143,6 +180,7 @@ function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => 
             ({preset.focus_seconds}sec)
           </Typography.Text>
         )}
+        {showJobTag && <span style={{ marginLeft: 8 }}>{jobTypeTag(preset.job_type)}</span>}
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
       </span>
     </div>
@@ -152,11 +190,15 @@ function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => 
 function TimeSlotSection({
   timeSlot,
   presets,
+  reorderEnabled,
+  showJobTag,
   onReorder,
   onRowClick,
 }: {
   timeSlot: string;
   presets: HabitPreset[];
+  reorderEnabled: boolean;
+  showJobTag: boolean;
   onReorder: (timeSlot: string, ordered: number[]) => void;
   onRowClick: (preset: HabitPreset) => void;
 }) {
@@ -195,7 +237,13 @@ function TimeSlotSection({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={presets.map((p) => p.id)} strategy={verticalListSortingStrategy}>
             {presets.map((p) => (
-              <SortableRow key={p.id} preset={p} onClick={() => onRowClick(p)} />
+              <SortableRow
+                key={p.id}
+                preset={p}
+                draggable={reorderEnabled}
+                showJobTag={showJobTag}
+                onClick={() => onRowClick(p)}
+              />
             ))}
           </SortableContext>
         </DndContext>
@@ -207,22 +255,30 @@ function TimeSlotSection({
 export default function HabitPresetsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<string>("active");
+  const [jobFilter, setJobFilter] = useState<string>(JOB_TYPE_FILTER_VALUE_ALL);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<HabitPreset | null>(null);
   const [form] = Form.useForm<FormValues>();
 
-  const queryKey = ["habit-presets", { filter }] as const;
+  // reorder 는 단일 (job_type, time_slot) 그룹 안에서만 의미가 있으므로
+  // 특정 job(또는 공통)으로 좁혀졌을 때만 드래그 정렬을 허용한다.
+  const reorderEnabled = jobFilter !== JOB_TYPE_FILTER_VALUE_ALL;
+  const showJobTag = jobFilter === JOB_TYPE_FILTER_VALUE_ALL;
+
+  const queryKey = ["habit-presets", { filter, jobFilter }] as const;
 
   const { data, isLoading } = useQuery({
     queryKey,
     queryFn: () =>
       getHabitPresets({
+        job_type: jobFilter === JOB_TYPE_FILTER_VALUE_ALL ? undefined : jobFilter,
         is_active: filter === "active",
         limit: 200,
       }),
   });
 
   const supportedLocales = data?.supported_locales ?? DEFAULT_LOCALES;
+  const validJobTypes = data?.valid_job_types ?? Object.keys(JOB_TYPE_LABELS);
 
   const grouped = useMemo(() => {
     const map: Record<string, HabitPreset[]> = {};
@@ -234,9 +290,33 @@ export default function HabitPresetsPage() {
     return map;
   }, [data]);
 
+  const jobTypeFilterOptions = useMemo(
+    () => [
+      { value: JOB_TYPE_FILTER_VALUE_ALL, label: "All jobs" },
+      { value: JOB_TYPE_FILTER_VALUE_COMMON, label: "공통 (NULL)" },
+      ...validJobTypes.map((v) => ({ value: v, label: JOB_TYPE_LABELS[v] ?? v })),
+    ],
+    [validJobTypes],
+  );
+
+  const jobTypeFormOptions = useMemo(
+    () => [
+      { value: "__null__", label: "공통 (NULL)" },
+      ...validJobTypes.map((v) => ({ value: v, label: JOB_TYPE_LABELS[v] ?? v })),
+    ],
+    [validJobTypes],
+  );
+
   const reorderMutation = useMutation({
-    mutationFn: ({ time_slot, ordered_ids }: { time_slot: string; ordered_ids: number[] }) =>
-      reorderHabitPresets(time_slot, ordered_ids),
+    mutationFn: ({
+      job_type,
+      time_slot,
+      ordered_ids,
+    }: {
+      job_type: string | null;
+      time_slot: string;
+      ordered_ids: number[];
+    }) => reorderHabitPresets(job_type, time_slot, ordered_ids),
     onMutate: async ({ time_slot, ordered_ids }) => {
       await queryClient.cancelQueries({ queryKey: ["habit-presets"] });
       const previous = queryClient.getQueryData(queryKey);
@@ -350,8 +430,18 @@ export default function HabitPresetsPage() {
     setEditing(null);
   };
 
+  // 생성 시 현재 job 필터를 기본 job_type 으로 미리 채운다 (All jobs → 공통).
+  const defaultJobType =
+    jobFilter === JOB_TYPE_FILTER_VALUE_ALL
+      ? "__null__"
+      : jobFilter === JOB_TYPE_FILTER_VALUE_COMMON
+        ? "__null__"
+        : jobFilter;
+
+  // Form Select 는 null 을 직접 다루기 까다로워 "__null__" 센티넬로 표현한다.
   const initialValues: FormValues = editing
     ? {
+        job_type: editing.job_type ?? "__null__",
         time_slot: editing.time_slot,
         emoji: editing.emoji ?? undefined,
         focus_seconds: editing.focus_seconds ?? undefined,
@@ -359,6 +449,7 @@ export default function HabitPresetsPage() {
         titles: editing.titles,
       }
     : {
+        job_type: defaultJobType,
         time_slot: "ANYTIME",
         is_active: true,
         titles: {},
@@ -376,6 +467,7 @@ export default function HabitPresetsPage() {
       return;
     }
     const body = {
+      job_type: values.job_type === "__null__" ? null : values.job_type,
       time_slot: values.time_slot,
       emoji: values.emoji?.trim() || null,
       focus_seconds: values.focus_seconds ?? null,
@@ -411,12 +503,20 @@ export default function HabitPresetsPage() {
         </Button>
       </div>
 
-      <Segmented
-        options={FILTER_OPTIONS}
-        value={filter}
-        onChange={(v) => setFilter(String(v))}
-        style={{ marginBottom: 16 }}
-      />
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Select
+          value={jobFilter}
+          onChange={setJobFilter}
+          options={jobTypeFilterOptions}
+          style={{ width: 200 }}
+        />
+        <Segmented options={FILTER_OPTIONS} value={filter} onChange={(v) => setFilter(String(v))} />
+        {!reorderEnabled && (
+          <Typography.Text type="secondary">
+            드래그 정렬은 특정 직업/공통으로 필터하면 사용할 수 있어요
+          </Typography.Text>
+        )}
+      </Space>
 
       {isLoading ? (
         <div style={{ textAlign: "center", padding: 32, color: "#999" }}>Loading…</div>
@@ -427,8 +527,15 @@ export default function HabitPresetsPage() {
               <TimeSlotSection
                 timeSlot={ts}
                 presets={grouped[ts] ?? []}
+                reorderEnabled={reorderEnabled}
+                showJobTag={showJobTag}
                 onReorder={(time_slot, ordered_ids) =>
-                  reorderMutation.mutate({ time_slot, ordered_ids })
+                  reorderMutation.mutate({
+                    job_type:
+                      jobFilter === JOB_TYPE_FILTER_VALUE_COMMON ? null : jobFilter,
+                    time_slot,
+                    ordered_ids,
+                  })
                 }
                 onRowClick={openDetailModal}
               />
@@ -473,9 +580,25 @@ export default function HabitPresetsPage() {
         }
       >
         <Form form={form} layout="vertical" preserve={false} initialValues={initialValues}>
-          <Form.Item label="Time slot" name="time_slot" rules={[{ required: true }]}>
-            <Select options={TIME_SLOT_OPTIONS} />
-          </Form.Item>
+          <div style={{ display: "flex", gap: 16 }}>
+            <Form.Item
+              label="Job type"
+              name="job_type"
+              style={{ flex: 1 }}
+              rules={[{ required: true }]}
+              extra="공통 = 모든 직업 유저에게 노출"
+            >
+              <Select options={jobTypeFormOptions} />
+            </Form.Item>
+            <Form.Item
+              label="Time slot"
+              name="time_slot"
+              style={{ flex: 1 }}
+              rules={[{ required: true }]}
+            >
+              <Select options={TIME_SLOT_OPTIONS} />
+            </Form.Item>
+          </div>
 
           <Form.Item
             label="한국어 (ko)"

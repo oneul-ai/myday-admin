@@ -85,7 +85,6 @@ const JOB_TYPE_LABELS: Record<string, string> = {
   student: "학생",
   freelancer: "프리랜서",
   business_owner: "사업가",
-  shift_worker: "교대근무자",
   homemaker: "육아/가사",
   job_seeker: "시험/취업 준비",
 };

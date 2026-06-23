@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -286,6 +286,7 @@ export default function HabitPresetsPage() {
   // 섹션의 + 버튼으로 생성할 때 미리 채워질 time_slot.
   const [createTimeSlot, setCreateTimeSlot] = useState<string>("ANYTIME");
   const [editing, setEditing] = useState<HabitPreset | null>(null);
+  const [bulkAutofilling, setBulkAutofilling] = useState(false);
   const [form] = Form.useForm<FormValues>();
 
   const queryKey = ["habit-presets", { filter, jobFilter }] as const;
@@ -464,6 +465,71 @@ export default function HabitPresetsPage() {
     autofillMutation.mutate({ ko_title: ko.trim(), time_slot });
   };
 
+  // 현재 화면(필터)의 preset 중 emoji·focus_seconds·번역 중 하나라도 비어있고,
+  // ko 제목이 있어 autofill 가능한 항목들. (ko 가 없으면 자동 채우기 불가 → 제외)
+  const incompletePresets = useMemo(
+    () =>
+      (data?.presets ?? []).filter((p) => {
+        if (!p.titles?.ko?.trim()) return false;
+        const missingEmoji = !p.emoji;
+        const missingFocus = p.focus_seconds == null;
+        const missingTitle = supportedLocales.some((loc) => !p.titles?.[loc]?.trim());
+        return missingEmoji || missingFocus || missingTitle;
+      }),
+    [data, supportedLocales],
+  );
+
+  // 비어있는 항목들을 순차적으로 autofill 한 뒤, 기존 값은 보존하고 빈 필드만 채워 저장한다.
+  const handleBulkAutofill = async () => {
+    const targets = incompletePresets;
+    if (targets.length === 0) {
+      message.info("Auto-fill 할 빈 항목이 없습니다");
+      return;
+    }
+    setBulkAutofilling(true);
+    const key = "bulk-autofill";
+    let updated = 0;
+    let failed = 0;
+    for (let i = 0; i < targets.length; i++) {
+      const p = targets[i];
+      message.loading({
+        content: `Auto-filling ${i + 1}/${targets.length}…`,
+        key,
+        duration: 0,
+      });
+      try {
+        const result = await autofillHabitPreset(p.titles.ko.trim(), p.time_slot);
+        const body: HabitPresetUpdateInput = {};
+        if (!p.emoji && result.emoji) body.emoji = result.emoji;
+        if (p.focus_seconds == null && result.focus_seconds != null) {
+          body.focus_seconds = result.focus_seconds;
+        }
+        // 기존 번역은 유지하고 비어있는 로케일만 새 값으로 채운다.
+        const mergedTitles: Record<string, string> = { ...p.titles };
+        let titleAdded = false;
+        for (const loc of supportedLocales) {
+          const incoming = result.titles?.[loc]?.trim();
+          if (incoming && !mergedTitles[loc]?.trim()) {
+            mergedTitles[loc] = incoming;
+            titleAdded = true;
+          }
+        }
+        if (titleAdded) body.titles = mergedTitles;
+        if (Object.keys(body).length > 0) {
+          await updateHabitPreset(p.id, body);
+          updated++;
+        }
+      } catch {
+        failed++;
+      }
+    }
+    setBulkAutofilling(false);
+    await queryClient.invalidateQueries({ queryKey: ["habit-presets"] });
+    const summary = `Auto-fill 완료: ${updated}건 업데이트${failed ? `, ${failed}건 실패` : ""}`;
+    if (failed > 0) message.warning({ content: summary, key });
+    else message.success({ content: summary, key });
+  };
+
   const openCreateModal = (timeSlot: string = "ANYTIME") => {
     setEditing(null);
     setCreateTimeSlot(timeSlot);
@@ -500,6 +566,13 @@ export default function HabitPresetsPage() {
         is_active: true,
         titles: {},
       };
+
+  // antd 의 initialValues 는 폼 최초 마운트 때만 적용되므로, 모달이 열릴 때마다
+  // 최신 initialValues 로 명시적으로 리셋한다. (닫힘 애니메이션 타이밍에 의존하면
+  // 직전 아이템 값이 폼에 남는 문제가 생긴다.)
+  useEffect(() => {
+    if (modalOpen) form.resetFields();
+  }, [modalOpen, editing, form]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
@@ -551,9 +624,27 @@ export default function HabitPresetsPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           Habit Presets
         </Typography.Title>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>
-          New preset
-        </Button>
+        <Space>
+          <Popconfirm
+            title="비어있는 항목 일괄 채우기"
+            description={`${incompletePresets.length}개 항목의 빈 emoji · focus · 번역을 자동으로 채웁니다.`}
+            onConfirm={handleBulkAutofill}
+            okText="Auto-fill"
+            okButtonProps={{ loading: bulkAutofilling }}
+            disabled={bulkAutofilling || incompletePresets.length === 0}
+          >
+            <Button
+              icon={<ThunderboltOutlined />}
+              loading={bulkAutofilling}
+              disabled={incompletePresets.length === 0}
+            >
+              Auto-fill empty ({incompletePresets.length})
+            </Button>
+          </Popconfirm>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => openCreateModal()}>
+            New preset
+          </Button>
+        </Space>
       </div>
 
       <Space wrap style={{ marginBottom: 16 }}>
@@ -603,7 +694,7 @@ export default function HabitPresetsPage() {
         open={modalOpen}
         onCancel={closeModal}
         width={620}
-        destroyOnClose
+        destroyOnHidden
         footer={
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <Space>

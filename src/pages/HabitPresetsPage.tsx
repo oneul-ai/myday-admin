@@ -112,6 +112,18 @@ interface FormValues {
   titles: Record<string, string | undefined>;
 }
 
+// focus_seconds 는 초 단위로 저장하지만, 리스트 표시는 가독성을 위해 단위를 환산한다.
+// 60초 미만은 초, 60초~60분 미만은 분, 60분 이상은 시간 단위로 보여준다.
+function formatFocusDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}sec`;
+  if (seconds < 3600) {
+    const min = seconds / 60;
+    return `${Number.isInteger(min) ? min : min.toFixed(1)}min`;
+  }
+  const hour = seconds / 3600;
+  return `${Number.isInteger(hour) ? hour : hour.toFixed(1)}hr`;
+}
+
 function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preset.id,
@@ -156,7 +168,7 @@ function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => 
         <span>{preset.titles?.ko ?? "(no ko title)"}</span>
         {preset.focus_seconds != null && (
           <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-            ({preset.focus_seconds}sec)
+            ({formatFocusDuration(preset.focus_seconds)})
           </Typography.Text>
         )}
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
@@ -188,7 +200,7 @@ function CommonRow({ preset, onClick }: { preset: HabitPreset; onClick: () => vo
         <span>{preset.titles?.ko ?? "(no ko title)"}</span>
         {preset.focus_seconds != null && (
           <Typography.Text type="secondary" style={{ marginLeft: 8 }}>
-            ({preset.focus_seconds}sec)
+            ({formatFocusDuration(preset.focus_seconds)})
           </Typography.Text>
         )}
         <Tag color="blue" style={{ marginLeft: 8 }}>

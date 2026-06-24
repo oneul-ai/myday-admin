@@ -25,6 +25,7 @@ import {
   PlusOutlined,
   StopOutlined,
   ThunderboltOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import {
   DndContext,
@@ -123,6 +124,20 @@ function formatFocusDuration(seconds: number): string {
   return `${Number.isInteger(hour) ? hour : hour.toFixed(1)}hr`;
 }
 
+// 이 습관을 등록한 유저 수 — 서버가 Task.habit_preset_id 로 집계해 내려준다.
+function UserCountBadge({ count }: { count?: number }) {
+  return (
+    <Typography.Text
+      type="secondary"
+      style={{ marginLeft: 8, whiteSpace: "nowrap", fontSize: 12 }}
+      title="이 습관을 등록한 유저 수"
+    >
+      <UserOutlined style={{ marginRight: 4 }} />
+      {count ?? 0}명
+    </Typography.Text>
+  );
+}
+
 function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: preset.id,
@@ -172,6 +187,7 @@ function SortableRow({ preset, onClick }: { preset: HabitPreset; onClick: () => 
         )}
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
       </span>
+      <UserCountBadge count={preset.user_count} />
     </div>
   );
 }
@@ -207,6 +223,7 @@ function CommonRow({ preset, onClick }: { preset: HabitPreset; onClick: () => vo
         </Tag>
         {!preset.is_active && <Tag style={{ marginLeft: 8 }}>Inactive</Tag>}
       </span>
+      <UserCountBadge count={preset.user_count} />
     </div>
   );
 }

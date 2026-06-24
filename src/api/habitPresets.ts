@@ -11,6 +11,8 @@ export interface HabitPreset {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  // 이 습관을 등록한(Task.habit_preset_id) distinct 유저 수. 목록 조회 시에만 채워진다.
+  user_count?: number;
 }
 
 export interface HabitPresetsResponse {

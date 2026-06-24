@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Button,
   Card,
@@ -315,6 +315,9 @@ export default function HabitPresetsPage() {
   const [createTimeSlot, setCreateTimeSlot] = useState<string>("ANYTIME");
   const [editing, setEditing] = useState<HabitPreset | null>(null);
   const [bulkAutofilling, setBulkAutofilling] = useState(false);
+  // 모달을 열 때마다 증가시켜 <Form> 을 강제로 재마운트한다.
+  // (antd 는 마운트 이후 initialValues 변경을 무시하므로 key 교체로 새로 읽게 한다.)
+  const [formKey, setFormKey] = useState(0);
   const [form] = Form.useForm<FormValues>();
 
   const queryKey = ["habit-presets", { filter, jobFilter }] as const;
@@ -561,11 +564,13 @@ export default function HabitPresetsPage() {
   const openCreateModal = (timeSlot: string = "ANYTIME") => {
     setEditing(null);
     setCreateTimeSlot(timeSlot);
+    setFormKey((k) => k + 1);
     setModalOpen(true);
   };
 
   const openDetailModal = (p: HabitPreset) => {
     setEditing(p);
+    setFormKey((k) => k + 1);
     setModalOpen(true);
   };
 
@@ -594,13 +599,6 @@ export default function HabitPresetsPage() {
         is_active: true,
         titles: {},
       };
-
-  // antd 의 initialValues 는 폼 최초 마운트 때만 적용되므로, 모달이 열릴 때마다
-  // 최신 initialValues 로 명시적으로 리셋한다. (닫힘 애니메이션 타이밍에 의존하면
-  // 직전 아이템 값이 폼에 남는 문제가 생긴다.)
-  useEffect(() => {
-    if (modalOpen) form.resetFields();
-  }, [modalOpen, editing, form]);
 
   const handleSubmit = async () => {
     const values = await form.validateFields();
@@ -761,7 +759,13 @@ export default function HabitPresetsPage() {
           </div>
         }
       >
-        <Form form={form} layout="vertical" preserve={false} initialValues={initialValues}>
+        <Form
+          key={formKey}
+          form={form}
+          layout="vertical"
+          preserve={false}
+          initialValues={initialValues}
+        >
           <div style={{ display: "flex", gap: 16 }}>
             <Form.Item
               label="Job type"

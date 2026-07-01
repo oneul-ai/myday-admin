@@ -41,11 +41,15 @@ export default function UsersPage() {
       title: "Name",
       dataIndex: "name",
       width: 150,
+      render: (name: string) =>
+        name ? name : <Typography.Text type="secondary">비회원</Typography.Text>,
     },
     {
       title: "Email",
       dataIndex: "email",
       width: 250,
+      render: (email: string) =>
+        email ? email : <Typography.Text type="secondary">비회원</Typography.Text>,
     },
     {
       title: "Plan",

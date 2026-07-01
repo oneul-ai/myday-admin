@@ -44,8 +44,26 @@ export default function DashboardPage() {
           pagination={false}
           size="small"
           columns={[
-            { title: "Name", dataIndex: "name" },
-            { title: "Email", dataIndex: "email" },
+            {
+              title: "Name",
+              dataIndex: "name",
+              render: (name: string) =>
+                name ? (
+                  name
+                ) : (
+                  <Typography.Text type="secondary">비회원</Typography.Text>
+                ),
+            },
+            {
+              title: "Email",
+              dataIndex: "email",
+              render: (email: string) =>
+                email ? (
+                  email
+                ) : (
+                  <Typography.Text type="secondary">비회원</Typography.Text>
+                ),
+            },
             { title: "Plan", dataIndex: "plan" },
             {
               title: "Joined",

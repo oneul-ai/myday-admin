@@ -84,7 +84,7 @@ export default function UsersPage() {
       <Typography.Title level={4}>Users</Typography.Title>
       <Space style={{ marginBottom: 16 }} size="large" wrap>
         <Input.Search
-          placeholder="Search by name or email"
+          placeholder="Search by name, email, or uid"
           allowClear
           onSearch={setSearch}
           style={{ width: 400 }}

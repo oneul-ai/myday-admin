@@ -6,9 +6,12 @@ import dayjs from "dayjs";
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({
-    queryKey: ["users", { offset: 0, limit: 5 }],
-    queryFn: () => getUsers({ offset: 0, limit: 5 }),
+    queryKey: ["users", { offset: 0, limit: 1000 }],
+    queryFn: () => getUsers({ offset: 0, limit: 1000 }),
   });
+
+  const since = dayjs().subtract(24, "hour");
+  const recentUsers = data?.users?.filter((u) => dayjs(u.joined_at).isAfter(since));
 
   return (
     <>
@@ -27,8 +30,8 @@ export default function DashboardPage() {
         <Col span={8}>
           <Card>
             <Statistic
-              title="Recent Signups (shown)"
-              value={data?.users?.length ?? "-"}
+              title="Signups (last 24h)"
+              value={recentUsers?.length ?? "-"}
               prefix={<MobileOutlined />}
               loading={isLoading}
             />
@@ -36,9 +39,9 @@ export default function DashboardPage() {
         </Col>
       </Row>
 
-      <Card title="Recent Users">
+      <Card title="Recent Users (last 24h)">
         <Table
-          dataSource={data?.users}
+          dataSource={recentUsers}
           loading={isLoading}
           rowKey="uid"
           pagination={false}
@@ -68,7 +71,7 @@ export default function DashboardPage() {
             {
               title: "Joined",
               dataIndex: "joined_at",
-              render: (v: string) => dayjs(v).format("YYYY-MM-DD"),
+              render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
             },
           ]}
         />

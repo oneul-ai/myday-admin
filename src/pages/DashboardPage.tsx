@@ -6,8 +6,8 @@ import dayjs from "dayjs";
 
 export default function DashboardPage() {
   const { data, isLoading } = useQuery({
-    queryKey: ["users", { offset: 0, limit: 1000 }],
-    queryFn: () => getUsers({ offset: 0, limit: 1000 }),
+    queryKey: ["users", { offset: 0, limit: 100 }],
+    queryFn: () => getUsers({ offset: 0, limit: 100 }),
   });
 
   const since = dayjs().subtract(24, "hour");

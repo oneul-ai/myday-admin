@@ -76,6 +76,43 @@ export default function PublishPage() {
     },
   });
 
+  const bulkPublishMutation = useMutation({
+    mutationFn: async ({
+      scope,
+      locales,
+    }: {
+      scope: I18nScope;
+      locales: string[];
+    }) => {
+      const succeeded: string[] = [];
+      const failed: { locale: string; detail: string }[] = [];
+      // bundle version 발급이 (scope, locale) 별로 이루어지므로 순차 호출.
+      for (const locale of locales) {
+        try {
+          await publishBundle(scope, locale);
+          succeeded.push(locale);
+        } catch (err) {
+          const detail =
+            (err as { response?: { data?: { detail?: string } } })?.response
+              ?.data?.detail || "Publish 실패";
+          failed.push({ locale, detail });
+        }
+      }
+      return { scope, succeeded, failed };
+    },
+    onSuccess: ({ scope, succeeded, failed }) => {
+      if (succeeded.length > 0) {
+        message.success(
+          `일괄 Publish 완료 — ${scope}: ${succeeded.join(", ")}`,
+        );
+      }
+      failed.forEach(({ locale, detail }) =>
+        message.error(`${scope}/${locale}: ${detail}`),
+      );
+      queryClient.invalidateQueries({ queryKey: ["i18n-publish-status"] });
+    },
+  });
+
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -101,14 +138,47 @@ export default function PublishPage() {
           <Spin />
         </Card>
       ) : (
-        grouped.map(({ scope, rows }) => (
-          <Card key={scope} title={`Scope: ${scope}`}>
+        grouped.map(({ scope, rows }) => {
+          const changedLocales = rows
+            .filter((r) => r.diff.added + r.diff.removed + r.diff.changed > 0)
+            .map((r) => r.locale);
+          const bulkPublishing =
+            bulkPublishMutation.isPending &&
+            bulkPublishMutation.variables?.scope === scope;
+          return (
+          <Card
+            key={scope}
+            title={`Scope: ${scope}`}
+            extra={
+              <Popconfirm
+                title="일괄 Publish 할까요?"
+                description={`변경 사항이 있는 ${changedLocales.length}개 locale (${changedLocales.join(", ")}) 을 모두 발행합니다.`}
+                okText="일괄 발행"
+                cancelText="취소"
+                onConfirm={() =>
+                  bulkPublishMutation.mutate({ scope, locales: changedLocales })
+                }
+                disabled={changedLocales.length === 0}
+              >
+                <Button
+                  type="primary"
+                  icon={<CloudUploadOutlined />}
+                  disabled={changedLocales.length === 0}
+                  loading={bulkPublishing}
+                >
+                  전체 Publish{changedLocales.length > 0 ? ` (${changedLocales.length})` : ""}
+                </Button>
+              </Popconfirm>
+            }
+          >
             <PublishTable
               rows={rows}
               isPublishing={(scope, locale) =>
-                publishMutation.isPending &&
-                publishMutation.variables?.scope === scope &&
-                publishMutation.variables?.locale === locale
+                (publishMutation.isPending &&
+                  publishMutation.variables?.scope === scope &&
+                  publishMutation.variables?.locale === locale) ||
+                (bulkPublishing &&
+                  bulkPublishMutation.variables?.locales.includes(locale) === true)
               }
               onShowDiff={(row) =>
                 setDiffTarget({ scope: row.scope, locale: row.locale })
@@ -118,7 +188,8 @@ export default function PublishPage() {
               }
             />
           </Card>
-        ))
+          );
+        })
       )}
 
       {diffTarget && (

@@ -19,6 +19,8 @@ import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
 import TaskRecommendationsPage from "./pages/TaskRecommendationsPage";
 import I18nSyncPage from "./pages/i18n/SyncPage";
+import BlogPostsPage from "./pages/blog/BlogPostsPage";
+import BlogPostEditorPage from "./pages/blog/BlogPostEditorPage";
 import I18nKeysPage from "./pages/i18n/KeysPage";
 import I18nPublishPage from "./pages/i18n/PublishPage";
 
@@ -70,6 +72,9 @@ export default function App() {
                     element={<RestPreferenceOptionsPage />}
                   />
                   <Route path="/feedbacks" element={<FeedbacksPage />} />
+                  <Route path="/blog-posts" element={<BlogPostsPage />} />
+                  <Route path="/blog-posts/new" element={<BlogPostEditorPage />} />
+                  <Route path="/blog-posts/:id" element={<BlogPostEditorPage />} />
                   <Route path="/metrics/hourly" element={<HourlyMetricsPage />} />
                   <Route path="/admins" element={<AdminsPage />} />
                   <Route path="/i18n/keys" element={<I18nKeysPage />} />

@@ -10,6 +10,7 @@ import {
   ExperimentOutlined,
   MessageOutlined,
   LineChartOutlined,
+  ReadOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -27,6 +28,7 @@ const baseMenuItems = [
     label: "Rest Preferences",
   },
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
+  { key: "/blog-posts", icon: <ReadOutlined />, label: "블로그" },
   { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "활동 다이제스트" },
   {
     key: "i18n",

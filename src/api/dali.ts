@@ -114,3 +114,45 @@ export async function recommendGreeting(body: DaliRecommendGreetingRequest) {
   );
   return data;
 }
+
+export interface DaliQuoteProvidersResponse {
+  models: DaliModel[];
+  default_system_prompt: string;
+  response_schema: Record<string, unknown>;
+}
+
+export async function getDaliQuoteProviders() {
+  const { data } = await client.get<DaliQuoteProvidersResponse>(
+    "/dali/quote/providers",
+  );
+  return data;
+}
+
+export interface DaliQuoteResult {
+  quote: string;
+  author: string;
+}
+
+export interface DaliRecommendQuoteRequest {
+  context: DaliContext;
+  model_id: string;
+  system_prompt?: string;
+  few_shot?: DaliFewShot[];
+  thinking?: boolean;
+}
+
+export interface DaliRecommendQuoteResponse {
+  result: DaliQuoteResult;
+  latency_ms: number;
+  messages_sent: { role: string; content: string }[];
+  system_prompt_sent: string;
+  model_id: string;
+}
+
+export async function recommendQuote(body: DaliRecommendQuoteRequest) {
+  const { data } = await client.post<DaliRecommendQuoteResponse>(
+    "/dali/recommend-quote",
+    body,
+  );
+  return data;
+}

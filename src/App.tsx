@@ -17,6 +17,7 @@ import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
+import DaliQuoteRecommendPage from "./pages/DaliQuoteRecommendPage";
 import TaskRecommendationsPage from "./pages/TaskRecommendationsPage";
 import I18nSyncPage from "./pages/i18n/SyncPage";
 import BlogPostsPage from "./pages/blog/BlogPostsPage";
@@ -84,6 +85,10 @@ export default function App() {
                   <Route
                     path="/dali/greeting-recommend"
                     element={<DaliGreetingRecommendPage />}
+                  />
+                  <Route
+                    path="/dali/quote-recommend"
+                    element={<DaliQuoteRecommendPage />}
                   />
                   <Route
                     path="/dali/task-recommendations"

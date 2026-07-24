@@ -128,16 +128,26 @@ export async function getDaliQuoteProviders() {
   return data;
 }
 
-export interface DaliQuoteEntry {
-  quote: string;
-  author: string;
-}
-
 // 백엔드 QUOTE_LANGUAGES 와 동일한 코드 체계.
 export const DALI_QUOTE_LANGUAGES = ["ko", "en", "ja", "zh-Hans", "zh-Hant"] as const;
+export type DaliQuoteLanguage = (typeof DALI_QUOTE_LANGUAGES)[number];
 
+// 명언 + 달이의 격려 메시지 — 요청 언어 하나로만 온다.
 export interface DaliQuoteResult {
-  quotes: Record<string, DaliQuoteEntry>;
+  quote: string;
+  author: string;
+  message: string;
+}
+
+export async function getDaliQuoteContext(
+  uid: string,
+  timezone = "Asia/Seoul",
+  language: DaliQuoteLanguage = "en",
+) {
+  const { data } = await client.get<DaliContext>(`/dali/quote/context/${uid}`, {
+    params: { timezone, language },
+  });
+  return data;
 }
 
 export interface DaliRecommendQuoteRequest {

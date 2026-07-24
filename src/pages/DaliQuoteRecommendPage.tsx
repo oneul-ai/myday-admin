@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  AutoComplete,
   Button,
   Card,
   Col,
-  DatePicker,
   Descriptions,
   Empty,
   Input,
@@ -17,14 +17,16 @@ import {
   Typography,
   message,
 } from "antd";
-import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
+import { DeleteOutlined, PlusOutlined, ReloadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import dayjs, { type Dayjs } from "dayjs";
+import { getUsers, type User } from "../api/users";
 import {
   DALI_QUOTE_LANGUAGES,
+  getDaliQuoteContext,
   getDaliQuoteProviders,
   recommendQuote,
   type DaliFewShot,
+  type DaliQuoteLanguage,
   type DaliRecommendQuoteResponse,
 } from "../api/dali";
 
@@ -39,19 +41,12 @@ function pretty(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-// 백엔드 dali_quote_service 와 동일한 컨텍스트: date(ISO) + weekday(영문)
-// + recent_quotes(최근 30일 중복 제외 목록 — 테스트에선 직접 채워넣을 수 있음).
-function buildQuoteContext(date: Dayjs): string {
-  return pretty({
-    date: date.format("YYYY-MM-DD"),
-    weekday: date.format("dddd"),
-    recent_quotes: [],
-  });
-}
-
 export default function DaliQuoteRecommendPage() {
-  const [targetDate, setTargetDate] = useState<Dayjs>(dayjs());
-  const [contextText, setContextText] = useState(() => buildQuoteContext(dayjs()));
+  const [userSearch, setUserSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [timezone, setTimezone] = useState("Asia/Seoul");
+  const [language, setLanguage] = useState<DaliQuoteLanguage>("en");
+  const [contextText, setContextText] = useState("");
   const [contextError, setContextError] = useState<string | null>(null);
   const [systemPromptOverride, setSystemPromptOverride] = useState<string | null>(null);
   const [modelIdOverride, setModelIdOverride] = useState<string | null>(null);
@@ -66,6 +61,41 @@ export default function DaliQuoteRecommendPage() {
 
   const systemPrompt = systemPromptOverride ?? providers?.default_system_prompt ?? "";
   const modelId = modelIdOverride ?? providers?.models[0]?.id ?? "";
+
+  const { data: userSearchData } = useQuery({
+    queryKey: ["users-search", userSearch],
+    queryFn: () => getUsers({ q: userSearch || undefined, limit: 10 }),
+    enabled: userSearch.length >= 1,
+  });
+
+  const userOptions = useMemo(
+    () =>
+      (userSearchData?.users ?? []).map((u) => ({
+        value: u.uid,
+        label: `${u.name} <${u.email}>`,
+        user: u,
+      })),
+    [userSearchData],
+  );
+
+  const loadContext = useMutation({
+    mutationFn: async () => {
+      if (!selectedUser) throw new Error("유저를 먼저 선택해주세요");
+      return getDaliQuoteContext(selectedUser.uid, timezone, language);
+    },
+    onSuccess: (data) => {
+      setContextText(pretty(data));
+      setContextError(null);
+      message.success("컨텍스트 로드 완료");
+    },
+    onError: (err: unknown) => {
+      const msg = (err as { response?: { data?: { detail?: string } }; message?: string })
+        ?.response?.data?.detail
+        ?? (err as { message?: string }).message
+        ?? "컨텍스트 로드 실패";
+      message.error(msg);
+    },
+  });
 
   const run = useMutation({
     mutationFn: async () => {
@@ -128,40 +158,76 @@ export default function DaliQuoteRecommendPage() {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <Title level={4}>달이 — 오늘의 명언 추천 테스트</Title>
 
-      <Card title="1. 컨텍스트" size="small">
+      <Card title="1. 유저 & 컨텍스트" size="small">
         <Row gutter={16} align="middle">
-          <Col>
-            <DatePicker
-              value={targetDate}
-              allowClear={false}
-              onChange={(d) => {
-                if (!d) return;
-                setTargetDate(d);
-                setContextText(buildQuoteContext(d));
-                setContextError(null);
+          <Col flex="auto">
+            <AutoComplete
+              style={{ width: "100%" }}
+              placeholder="이름/이메일로 유저 검색"
+              options={userOptions}
+              onSearch={setUserSearch}
+              onSelect={(_, option) => {
+                const opt = option as unknown as { user: User };
+                setSelectedUser(opt.user);
               }}
+              value={selectedUser ? `${selectedUser.name} <${selectedUser.email}>` : userSearch}
+              onChange={(v) => {
+                setUserSearch(v);
+                if (selectedUser && v !== `${selectedUser.name} <${selectedUser.email}>`) {
+                  setSelectedUser(null);
+                }
+              }}
+              allowClear
             />
           </Col>
           <Col>
-            <Text type="secondary">
-              명언은 유저 개인화 없이 날짜/요일을 컨텍스트로 사용합니다. 운영에선
-              recent_quotes 에 최근 30일 명언이 들어가 중복을 제외합니다 — 테스트할 땐 직접 채워넣어 보세요.
-            </Text>
+            <Input
+              addonBefore="TZ"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+              style={{ width: 220 }}
+            />
+          </Col>
+          <Col>
+            <Select
+              style={{ width: 120 }}
+              value={language}
+              onChange={setLanguage}
+              options={DALI_QUOTE_LANGUAGES.map((l) => ({ value: l, label: l }))}
+            />
+          </Col>
+          <Col>
+            <Button
+              type="primary"
+              icon={<ReloadOutlined />}
+              loading={loadContext.isPending}
+              disabled={!selectedUser}
+              onClick={() => loadContext.mutate()}
+            >
+              컨텍스트 로드
+            </Button>
           </Col>
         </Row>
-        <Input.TextArea
-          value={contextText}
-          onChange={(e) => setContextText(e.target.value)}
-          onBlur={onContextBlur}
-          autoSize={{ minRows: 4, maxRows: 12 }}
-          style={{ marginTop: 8, fontFamily: "monospace", fontSize: 12 }}
-          placeholder="{ ... }"
-        />
-        {contextError && (
-          <Text type="danger" style={{ display: "block", marginTop: 4 }}>
-            JSON 파싱 에러: {contextError}
+        <div style={{ marginTop: 12 }}>
+          <Text type="secondary">
+            현재 시각 · 유저 정보(이름/직군) · 오늘의 할 일이 포함된 컨텍스트입니다.
+            운영에선 호출마다 이 컨텍스트로 새로 생성합니다 (저장/캐시 없음).
+            자유롭게 편집한 값이 그대로 LLM에 전송됩니다.
           </Text>
-        )}
+          <Input.TextArea
+            value={contextText}
+            onChange={(e) => setContextText(e.target.value)}
+            onBlur={onContextBlur}
+            autoSize={{ minRows: 10, maxRows: 30 }}
+            style={{ marginTop: 8, fontFamily: "monospace", fontSize: 12 }}
+            placeholder="{ ... }"
+          />
+          {contextError && (
+            <Text type="danger" style={{ display: "block", marginTop: 4 }}>
+              JSON 파싱 에러: {contextError}
+            </Text>
+          )}
+        </div>
       </Card>
 
       <Card
@@ -302,26 +368,30 @@ export default function DaliQuoteRecommendPage() {
             </Col>
           </Row>
 
-          <Space direction="vertical" size="small" style={{ width: "100%", marginBottom: 16 }}>
-            {DALI_QUOTE_LANGUAGES.map((lang) => {
-              const entry = result.result.quotes?.[lang];
-              if (!entry) return null;
-              return (
-                <Card
-                  key={lang}
-                  type="inner"
-                  size="small"
-                  title={lang}
-                  style={{ background: "#fafafa" }}
-                >
-                  <Title level={5} style={{ marginTop: 0, marginBottom: 4 }}>
-                    “{entry.quote}”
-                  </Title>
-                  <Text style={{ color: "#555" }}>— {entry.author}</Text>
-                </Card>
-              );
-            })}
-          </Space>
+          <Card
+            type="inner"
+            size="small"
+            style={{ marginBottom: 16, background: "#fafafa" }}
+          >
+            <Title level={4} style={{ marginTop: 0, marginBottom: 4 }}>
+              “{result.result.quote}”
+            </Title>
+            <Text style={{ color: "#555" }}>— {result.result.author}</Text>
+            <div style={{ marginTop: 12 }}>
+              <Text style={{ fontSize: 15 }}>🌙 {result.result.message}</Text>
+            </div>
+          </Card>
+
+          <Descriptions title="Response body" column={1} bordered size="small">
+            <Descriptions.Item label="JSON">
+              <Input.TextArea
+                value={pretty(result)}
+                readOnly
+                autoSize={{ minRows: 4, maxRows: 20 }}
+                style={{ fontFamily: "monospace", fontSize: 11 }}
+              />
+            </Descriptions.Item>
+          </Descriptions>
 
           <Descriptions
             title="LLM에 보낸 입력"

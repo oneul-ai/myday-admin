@@ -21,6 +21,7 @@ import { DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 import {
+  DALI_QUOTE_LANGUAGES,
   getDaliQuoteProviders,
   recommendQuote,
   type DaliFewShot,
@@ -38,11 +39,13 @@ function pretty(value: unknown): string {
   return JSON.stringify(value, null, 2);
 }
 
-// 백엔드 dali_quote_service 와 동일한 컨텍스트: date(ISO) + weekday(영문).
+// 백엔드 dali_quote_service 와 동일한 컨텍스트: date(ISO) + weekday(영문)
+// + recent_quotes(최근 30일 중복 제외 목록 — 테스트에선 직접 채워넣을 수 있음).
 function buildQuoteContext(date: Dayjs): string {
   return pretty({
     date: date.format("YYYY-MM-DD"),
     weekday: date.format("dddd"),
+    recent_quotes: [],
   });
 }
 
@@ -141,7 +144,8 @@ export default function DaliQuoteRecommendPage() {
           </Col>
           <Col>
             <Text type="secondary">
-              명언은 유저 개인화 없이 날짜/요일만 컨텍스트로 사용합니다. (전체 유저 공통, 날짜당 1회 캐시)
+              명언은 유저 개인화 없이 날짜/요일을 컨텍스트로 사용합니다. 운영에선
+              recent_quotes 에 최근 30일 명언이 들어가 중복을 제외합니다 — 테스트할 땐 직접 채워넣어 보세요.
             </Text>
           </Col>
         </Row>
@@ -298,18 +302,26 @@ export default function DaliQuoteRecommendPage() {
             </Col>
           </Row>
 
-          <Card
-            type="inner"
-            size="small"
-            style={{ marginBottom: 16, background: "#fafafa" }}
-          >
-            <Title level={3} style={{ marginTop: 0, marginBottom: 8 }}>
-              “{result.result.quote}”
-            </Title>
-            <Text style={{ fontSize: 16, color: "#555" }}>
-              — {result.result.author}
-            </Text>
-          </Card>
+          <Space direction="vertical" size="small" style={{ width: "100%", marginBottom: 16 }}>
+            {DALI_QUOTE_LANGUAGES.map((lang) => {
+              const entry = result.result.quotes?.[lang];
+              if (!entry) return null;
+              return (
+                <Card
+                  key={lang}
+                  type="inner"
+                  size="small"
+                  title={lang}
+                  style={{ background: "#fafafa" }}
+                >
+                  <Title level={5} style={{ marginTop: 0, marginBottom: 4 }}>
+                    “{entry.quote}”
+                  </Title>
+                  <Text style={{ color: "#555" }}>— {entry.author}</Text>
+                </Card>
+              );
+            })}
+          </Space>
 
           <Descriptions
             title="LLM에 보낸 입력"

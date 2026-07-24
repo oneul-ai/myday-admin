@@ -128,9 +128,16 @@ export async function getDaliQuoteProviders() {
   return data;
 }
 
-export interface DaliQuoteResult {
+export interface DaliQuoteEntry {
   quote: string;
   author: string;
+}
+
+// 백엔드 QUOTE_LANGUAGES 와 동일한 코드 체계.
+export const DALI_QUOTE_LANGUAGES = ["ko", "en", "ja", "zh-Hans", "zh-Hant"] as const;
+
+export interface DaliQuoteResult {
+  quotes: Record<string, DaliQuoteEntry>;
 }
 
 export interface DaliRecommendQuoteRequest {

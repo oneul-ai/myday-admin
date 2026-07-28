@@ -9,7 +9,7 @@ export interface AdminUser {
 export interface AuthState {
   user: AdminUser | null;
   token: string | null;
-  login: (credential: string) => void;
+  login: (credential: string) => Promise<void>;
   logout: () => void;
 }
 

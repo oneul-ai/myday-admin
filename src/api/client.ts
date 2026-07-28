@@ -15,7 +15,7 @@ function isTokenExpired(token: string): boolean {
 }
 
 function redirectToLogin() {
-  sessionStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_token");
   if (window.location.pathname !== "/login") {
     window.location.href = "/login";
   }
@@ -23,7 +23,7 @@ function redirectToLogin() {
 
 client.interceptors.request.use((config) => {
   config.baseURL = `${getApiBaseUrl()}/admin`;
-  const token = sessionStorage.getItem("admin_token");
+  const token = localStorage.getItem("admin_token");
   if (!token) return config;
   if (isTokenExpired(token)) {
     redirectToLogin();

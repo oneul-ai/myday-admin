@@ -1,4 +1,5 @@
-import { Card, Typography } from "antd";
+import { Card, Typography, message } from "antd";
+import { isAxiosError } from "axios";
 import { GoogleLogin } from "@react-oauth/google";
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -25,7 +26,11 @@ export default function LoginPage() {
         <div style={{ display: "flex", justifyContent: "center" }}>
           <GoogleLogin
             onSuccess={(res) => {
-              if (res.credential) login(res.credential);
+              if (!res.credential) return;
+              login(res.credential).catch((err) => {
+                const denied = isAxiosError(err) && err.response?.status === 403;
+                message.error(denied ? "어드민 권한이 없는 계정입니다." : "로그인에 실패했습니다.");
+              });
             }}
             onError={() => {}}
             size="large"

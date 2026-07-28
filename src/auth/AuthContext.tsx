@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { googleLogout } from "@react-oauth/google";
+import client from "../api/client";
 import { AuthContext, type AdminUser } from "./useAuth";
 
 function decodeJwtPayload(token: string): Record<string, unknown> {
@@ -8,7 +9,13 @@ function decodeJwtPayload(token: string): Record<string, unknown> {
 }
 
 function readSavedAuth(): { user: AdminUser | null; token: string | null } {
-  const saved = sessionStorage.getItem("admin_token");
+  // 이전 버전은 sessionStorage 에 저장했다 — 남아있으면 localStorage 로 이전.
+  const legacy = sessionStorage.getItem("admin_token");
+  if (legacy) {
+    sessionStorage.removeItem("admin_token");
+    if (!localStorage.getItem("admin_token")) localStorage.setItem("admin_token", legacy);
+  }
+  const saved = localStorage.getItem("admin_token");
   if (!saved) return { user: null, token: null };
   try {
     const payload = decodeJwtPayload(saved);
@@ -26,29 +33,30 @@ function readSavedAuth(): { user: AdminUser | null; token: string | null } {
   } catch {
     // fall through to cleanup
   }
-  sessionStorage.removeItem("admin_token");
+  localStorage.removeItem("admin_token");
   return { user: null, token: null };
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState(readSavedAuth);
 
-  const login = useCallback((credential: string) => {
-    const payload = decodeJwtPayload(credential);
+  const login = useCallback(async (credential: string) => {
+    // 구글 ID 토큰(만료 1시간 고정)을 서버가 발급한 장기 세션 토큰으로 교환.
+    const { data } = await client.post("/auth/login", { credential });
     setAuth({
-      token: credential,
+      token: data.token,
       user: {
-        email: payload.email as string,
-        name: payload.name as string,
-        picture: payload.picture as string,
+        email: data.admin.email,
+        name: data.admin.name,
+        picture: data.admin.picture,
       },
     });
-    sessionStorage.setItem("admin_token", credential);
+    localStorage.setItem("admin_token", data.token);
   }, []);
 
   const logout = useCallback(() => {
     setAuth({ user: null, token: null });
-    sessionStorage.removeItem("admin_token");
+    localStorage.removeItem("admin_token");
     googleLogout();
   }, []);
 

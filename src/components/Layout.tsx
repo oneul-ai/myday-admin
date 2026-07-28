@@ -9,6 +9,7 @@ import {
   LogoutOutlined,
   ExperimentOutlined,
   MessageOutlined,
+  NotificationOutlined,
   LineChartOutlined,
   ReadOutlined,
 } from "@ant-design/icons";
@@ -28,6 +29,7 @@ const baseMenuItems = [
     label: "Rest Preferences",
   },
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
+  { key: "/ad-settings", icon: <NotificationOutlined />, label: "광고 배너" },
   { key: "/blog-posts", icon: <ReadOutlined />, label: "블로그" },
   { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "활동 다이제스트" },
   {

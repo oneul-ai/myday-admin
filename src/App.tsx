@@ -15,6 +15,7 @@ import HabitPresetsPage from "./pages/HabitPresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
 import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
+import AdSettingsPage from "./pages/AdSettingsPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
 import DaliQuoteRecommendPage from "./pages/DaliQuoteRecommendPage";
@@ -73,6 +74,7 @@ export default function App() {
                     element={<RestPreferenceOptionsPage />}
                   />
                   <Route path="/feedbacks" element={<FeedbacksPage />} />
+                  <Route path="/ad-settings" element={<AdSettingsPage />} />
                   <Route path="/blog-posts" element={<BlogPostsPage />} />
                   <Route path="/blog-posts/new" element={<BlogPostEditorPage />} />
                   <Route path="/blog-posts/:id" element={<BlogPostEditorPage />} />

@@ -183,6 +183,20 @@ export async function deleteTranslation(id: number) {
   await client.delete(`/i18n/translations/${id}`);
 }
 
+export interface ClearLocaleResponse {
+  scope: I18nScope;
+  locale: string;
+  deleted: number;
+}
+
+export async function clearLocale(scope: I18nScope, locale: string) {
+  const { data } = await client.post<ClearLocaleResponse>("/i18n/clear-locale", {
+    scope,
+    locale,
+  });
+  return data;
+}
+
 export interface AutoTranslateResponse {
   key_id: number;
   filled: { locale: string; value: string }[];

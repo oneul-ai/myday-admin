@@ -20,6 +20,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import {
   CheckCircleOutlined,
+  ClearOutlined,
   PlusOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
@@ -28,6 +29,7 @@ import {
   autoTranslateKey,
   bulkAutoTranslate,
   bulkPromoteDrafts,
+  clearLocale,
   createKey,
   deleteTranslation,
   getDraftCounts,
@@ -80,6 +82,7 @@ export default function KeysPage() {
   const [editingTranslation, setEditingTranslation] =
     useState<{ keyId: number; locale: string; current?: I18nTranslation } | null>(null);
   const [translatingKeyId, setTranslatingKeyId] = useState<number | null>(null);
+  const [clearingLocale, setClearingLocale] = useState<string | null>(null);
   // null = 닫힘, "" = 전체(모든 locale), "en"/"ja"/... = 특정 locale 만
   const [bulkTranslate, setBulkTranslate] = useState<string | null>(null);
   const [promoteOpen, setPromoteOpen] = useState(false);
@@ -210,6 +213,22 @@ export default function KeysPage() {
         onPageChange={setPage}
         translatingKeyId={translatingKeyId}
         onLocaleHeaderTranslate={(locale) => setBulkTranslate(locale)}
+        clearingLocale={clearingLocale}
+        onLocaleHeaderClear={async (locale) => {
+          setClearingLocale(locale);
+          try {
+            const result = await clearLocale(scope, locale);
+            message.success(`${locale} 번역 ${result.deleted}건이 삭제되었습니다.`);
+            invalidate();
+          } catch (err) {
+            const detail =
+              (err as { response?: { data?: { detail?: string } } })?.response
+                ?.data?.detail || `${locale} 번역 삭제 실패`;
+            message.error(detail);
+          } finally {
+            setClearingLocale(null);
+          }
+        }}
         onEditTranslation={(keyId, locale, current) =>
           setEditingTranslation({ keyId, locale, current })
         }
@@ -301,6 +320,8 @@ interface KeysTableProps {
   onPageChange: (p: number) => void;
   translatingKeyId: number | null;
   onLocaleHeaderTranslate: (locale: string) => void;
+  clearingLocale: string | null;
+  onLocaleHeaderClear: (locale: string) => Promise<void>;
   onEditTranslation: (keyId: number, locale: string, current?: I18nTranslation) => void;
   onDeprecateToggle: (k: I18nKey) => Promise<void>;
   onDescriptionSave: (k: I18nKey, description: string | null) => Promise<void>;
@@ -315,6 +336,8 @@ function KeysTable({
   onPageChange,
   translatingKeyId,
   onLocaleHeaderTranslate,
+  clearingLocale,
+  onLocaleHeaderClear,
   onEditTranslation,
   onDeprecateToggle,
   onDescriptionSave,
@@ -326,17 +349,38 @@ function KeysTable({
         <Space size={4}>
           <span>{locale}</span>
           {locale !== "ko" && (
-            <Tooltip title={`비어있는 ${locale} 값을 ko 에서 AI 번역`}>
-              <Button
-                size="small"
-                type="text"
-                icon={<ThunderboltOutlined />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onLocaleHeaderTranslate(locale);
-                }}
-              />
-            </Tooltip>
+            <>
+              <Tooltip title={`비어있는 ${locale} 값을 ko 에서 AI 번역`}>
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<ThunderboltOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onLocaleHeaderTranslate(locale);
+                  }}
+                />
+              </Tooltip>
+              <Popconfirm
+                title={`${locale} 번역을 전부 삭제할까요?`}
+                description={`현재 scope 모든 키의 ${locale} 값이 삭제됩니다. 되돌릴 수 없습니다.`}
+                okText="전체 삭제"
+                okButtonProps={{ danger: true }}
+                cancelText="취소"
+                onConfirm={() => onLocaleHeaderClear(locale)}
+              >
+                <Tooltip title={`${locale} 값 전체 비우기`}>
+                  <Button
+                    size="small"
+                    type="text"
+                    danger
+                    icon={<ClearOutlined />}
+                    loading={clearingLocale === locale}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Tooltip>
+              </Popconfirm>
+            </>
           )}
         </Space>
       ),
@@ -446,6 +490,8 @@ function KeysTable({
     supportedLocales,
     translatingKeyId,
     onLocaleHeaderTranslate,
+    clearingLocale,
+    onLocaleHeaderClear,
     onEditTranslation,
     onDeprecateToggle,
     onAutoTranslate,

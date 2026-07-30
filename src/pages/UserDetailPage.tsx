@@ -7,6 +7,7 @@ import {
   message,
   Modal,
   Form,
+  Popconfirm,
   Input,
   Select,
   Space,
@@ -827,24 +828,30 @@ export default function UserDetailPage() {
               render: (token: string | null, r: Device) =>
                 token ? (
                   <Space size={4}>
-                    <Button
-                      size="small"
-                      loading={liveActivityTestMutation.isPending}
-                      onClick={() =>
+                    <Popconfirm
+                      title="Check-in Live Activity 시작 푸시를 발송할까요?"
+                      okText="발송"
+                      cancelText="취소"
+                      onConfirm={() =>
                         liveActivityTestMutation.mutate({ id: r.id, kind: "check_in" })
                       }
                     >
-                      Check-in
-                    </Button>
-                    <Button
-                      size="small"
-                      loading={liveActivityTestMutation.isPending}
-                      onClick={() =>
+                      <Button size="small" loading={liveActivityTestMutation.isPending}>
+                        Check-in
+                      </Button>
+                    </Popconfirm>
+                    <Popconfirm
+                      title="Countdown Live Activity 시작 푸시를 발송할까요?"
+                      okText="발송"
+                      cancelText="취소"
+                      onConfirm={() =>
                         liveActivityTestMutation.mutate({ id: r.id, kind: "task_countdown" })
                       }
                     >
-                      Countdown
-                    </Button>
+                      <Button size="small" loading={liveActivityTestMutation.isPending}>
+                        Countdown
+                      </Button>
+                    </Popconfirm>
                   </Space>
                 ) : (
                   <Tag>no token</Tag>

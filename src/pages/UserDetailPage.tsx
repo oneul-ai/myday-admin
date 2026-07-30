@@ -824,7 +824,7 @@ export default function UserDetailPage() {
               // push-to-start 토큰이 등록된 기기만 Live Activity 원격 시작 테스트 가능
               title: "Live Activity",
               dataIndex: "live_activity_start_token",
-              width: 210,
+              width: 290,
               render: (token: string | null, r: Device) =>
                 token ? (
                   <Space size={4}>
@@ -838,6 +838,18 @@ export default function UserDetailPage() {
                     >
                       <Button size="small" loading={liveActivityTestMutation.isPending}>
                         Check-in
+                      </Button>
+                    </Popconfirm>
+                    <Popconfirm
+                      title="Check-out Live Activity 시작 푸시를 발송할까요?"
+                      okText="발송"
+                      cancelText="취소"
+                      onConfirm={() =>
+                        liveActivityTestMutation.mutate({ id: r.id, kind: "check_out" })
+                      }
+                    >
+                      <Button size="small" loading={liveActivityTestMutation.isPending}>
+                        Check-out
                       </Button>
                     </Popconfirm>
                     <Popconfirm

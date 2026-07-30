@@ -12,7 +12,7 @@ export interface Device {
   updated_at: string;
 }
 
-export type LiveActivityTestKind = "check_in" | "task_countdown";
+export type LiveActivityTestKind = "check_in" | "check_out" | "task_countdown";
 
 export async function getUserDevices(uid: string) {
   const { data } = await client.get<Device[]>(`/users/${uid}/devices`);

@@ -304,7 +304,13 @@ function WeatherPanel({ user }: { user: User }) {
 }
 
 import { getUserTasks, type Task } from "../api/tasks";
-import { getUserDevices, updateDevice, type Device } from "../api/devices";
+import {
+  getUserDevices,
+  sendLiveActivityTest,
+  updateDevice,
+  type Device,
+  type LiveActivityTestKind,
+} from "../api/devices";
 import { getUserCalendars, getUserIntegrations } from "../api/calendars";
 import { getUserEvents } from "../api/schedules";
 import { getUserRepeatTasks, type RepeatTask } from "../api/routines";
@@ -396,6 +402,17 @@ export default function UserDetailPage() {
     onSuccess: () => {
       message.success("Device updated");
       queryClient.invalidateQueries({ queryKey: ["userDevices", uid] });
+    },
+  });
+
+  const liveActivityTestMutation = useMutation({
+    mutationFn: ({ id, kind }: { id: number; kind: LiveActivityTestKind }) =>
+      sendLiveActivityTest(id, kind),
+    onSuccess: () => {
+      message.success("Live Activity start push published");
+    },
+    onError: () => {
+      message.error("Failed to publish Live Activity test");
     },
   });
 
@@ -801,6 +818,37 @@ export default function UserDetailPage() {
               title: "FCM Token",
               dataIndex: "fcm_token",
               ellipsis: true,
+            },
+            {
+              // push-to-start 토큰이 등록된 기기만 Live Activity 원격 시작 테스트 가능
+              title: "Live Activity",
+              dataIndex: "live_activity_start_token",
+              width: 210,
+              render: (token: string | null, r: Device) =>
+                token ? (
+                  <Space size={4}>
+                    <Button
+                      size="small"
+                      loading={liveActivityTestMutation.isPending}
+                      onClick={() =>
+                        liveActivityTestMutation.mutate({ id: r.id, kind: "check_in" })
+                      }
+                    >
+                      Check-in
+                    </Button>
+                    <Button
+                      size="small"
+                      loading={liveActivityTestMutation.isPending}
+                      onClick={() =>
+                        liveActivityTestMutation.mutate({ id: r.id, kind: "task_countdown" })
+                      }
+                    >
+                      Countdown
+                    </Button>
+                  </Space>
+                ) : (
+                  <Tag>no token</Tag>
+                ),
             },
           ]}
         />

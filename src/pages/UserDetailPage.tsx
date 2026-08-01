@@ -410,7 +410,9 @@ export default function UserDetailPage() {
     mutationFn: ({ id, kind }: { id: number; kind: LiveActivityTestKind }) =>
       sendLiveActivityTest(id, kind),
     onSuccess: () => {
-      message.success("Live Activity start push published");
+      message.success("Live Activity push published");
+      // 종료 테스트는 서버가 업데이트 토큰을 비우므로 버튼 노출 상태를 갱신한다
+      queryClient.invalidateQueries({ queryKey: ["userDevices", uid] });
     },
     onError: () => {
       message.error("Failed to publish Live Activity test");
@@ -821,53 +823,92 @@ export default function UserDetailPage() {
               ellipsis: true,
             },
             {
-              // push-to-start 토큰이 등록된 기기만 Live Activity 원격 시작 테스트 가능
+              // 시작: push-to-start 토큰이 등록된 기기만. 종료: 실행 중인 활동의
+              // 업데이트 토큰이 등록된 기기만 (종료 발행 시 서버가 토큰을 비운다).
               title: "Live Activity",
-              dataIndex: "live_activity_start_token",
-              width: 290,
-              render: (token: string | null, r: Device) =>
-                token ? (
-                  <Space size={4}>
-                    <Popconfirm
-                      title="Check-in Live Activity 시작 푸시를 발송할까요?"
-                      okText="발송"
-                      cancelText="취소"
-                      onConfirm={() =>
-                        liveActivityTestMutation.mutate({ id: r.id, kind: "check_in" })
-                      }
-                    >
-                      <Button size="small" loading={liveActivityTestMutation.isPending}>
-                        Check-in
-                      </Button>
-                    </Popconfirm>
-                    <Popconfirm
-                      title="Check-out Live Activity 시작 푸시를 발송할까요?"
-                      okText="발송"
-                      cancelText="취소"
-                      onConfirm={() =>
-                        liveActivityTestMutation.mutate({ id: r.id, kind: "check_out" })
-                      }
-                    >
-                      <Button size="small" loading={liveActivityTestMutation.isPending}>
-                        Check-out
-                      </Button>
-                    </Popconfirm>
-                    <Popconfirm
-                      title="Countdown Live Activity 시작 푸시를 발송할까요?"
-                      okText="발송"
-                      cancelText="취소"
-                      onConfirm={() =>
-                        liveActivityTestMutation.mutate({ id: r.id, kind: "task_countdown" })
-                      }
-                    >
-                      <Button size="small" loading={liveActivityTestMutation.isPending}>
-                        Countdown
-                      </Button>
-                    </Popconfirm>
+              key: "live_activity",
+              width: 320,
+              render: (_: unknown, r: Device) => {
+                if (
+                  !r.live_activity_start_token &&
+                  !r.live_activity_check_in_token &&
+                  !r.live_activity_check_out_token
+                ) {
+                  return <Tag>no token</Tag>;
+                }
+                return (
+                  <Space size={4} wrap>
+                    {r.live_activity_start_token && (
+                      <>
+                        <Popconfirm
+                          title="Check-in Live Activity 시작 푸시를 발송할까요?"
+                          okText="발송"
+                          cancelText="취소"
+                          onConfirm={() =>
+                            liveActivityTestMutation.mutate({ id: r.id, kind: "check_in" })
+                          }
+                        >
+                          <Button size="small" loading={liveActivityTestMutation.isPending}>
+                            Check-in
+                          </Button>
+                        </Popconfirm>
+                        <Popconfirm
+                          title="Check-out Live Activity 시작 푸시를 발송할까요?"
+                          okText="발송"
+                          cancelText="취소"
+                          onConfirm={() =>
+                            liveActivityTestMutation.mutate({ id: r.id, kind: "check_out" })
+                          }
+                        >
+                          <Button size="small" loading={liveActivityTestMutation.isPending}>
+                            Check-out
+                          </Button>
+                        </Popconfirm>
+                        <Popconfirm
+                          title="Countdown Live Activity 시작 푸시를 발송할까요?"
+                          okText="발송"
+                          cancelText="취소"
+                          onConfirm={() =>
+                            liveActivityTestMutation.mutate({ id: r.id, kind: "task_countdown" })
+                          }
+                        >
+                          <Button size="small" loading={liveActivityTestMutation.isPending}>
+                            Countdown
+                          </Button>
+                        </Popconfirm>
+                      </>
+                    )}
+                    {r.live_activity_check_in_token && (
+                      <Popconfirm
+                        title="Check-in Live Activity 종료(event:end) 푸시를 발송할까요? 업데이트 토큰은 발송 후 비워집니다."
+                        okText="발송"
+                        cancelText="취소"
+                        onConfirm={() =>
+                          liveActivityTestMutation.mutate({ id: r.id, kind: "check_in_end" })
+                        }
+                      >
+                        <Button size="small" danger loading={liveActivityTestMutation.isPending}>
+                          Check-in End
+                        </Button>
+                      </Popconfirm>
+                    )}
+                    {r.live_activity_check_out_token && (
+                      <Popconfirm
+                        title="Check-out Live Activity 종료(event:end) 푸시를 발송할까요? 업데이트 토큰은 발송 후 비워집니다."
+                        okText="발송"
+                        cancelText="취소"
+                        onConfirm={() =>
+                          liveActivityTestMutation.mutate({ id: r.id, kind: "check_out_end" })
+                        }
+                      >
+                        <Button size="small" danger loading={liveActivityTestMutation.isPending}>
+                          Check-out End
+                        </Button>
+                      </Popconfirm>
+                    )}
                   </Space>
-                ) : (
-                  <Tag>no token</Tag>
-                ),
+                );
+              },
             },
           ]}
         />

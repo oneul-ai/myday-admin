@@ -17,6 +17,11 @@ const BANNERS: { key: keyof AdSettings; label: string; description: string }[] =
     label: "탭 바",
     description: "탭 바 배너 노출 (/awake 응답 ad.tab_bar)",
   },
+  {
+    key: "performance_tab",
+    label: "성과 탭",
+    description: "성과 탭 배너 노출 (/awake 응답 ad.performance_tab)",
+  },
 ];
 
 export default function AdSettingsPage() {

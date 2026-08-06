@@ -3,6 +3,7 @@ import client from "./client";
 export interface AdSettings {
   my_tab: boolean;
   tab_bar: boolean;
+  performance_tab: boolean;
 }
 
 export async function getAdSettings() {

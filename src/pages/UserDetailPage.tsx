@@ -832,7 +832,8 @@ export default function UserDetailPage() {
                 if (
                   !r.live_activity_start_token &&
                   !r.live_activity_check_in_token &&
-                  !r.live_activity_check_out_token
+                  !r.live_activity_check_out_token &&
+                  !r.live_activity_task_token
                 ) {
                   return <Tag>no token</Tag>;
                 }
@@ -903,6 +904,20 @@ export default function UserDetailPage() {
                       >
                         <Button size="small" danger loading={liveActivityTestMutation.isPending}>
                           Check-out End
+                        </Button>
+                      </Popconfirm>
+                    )}
+                    {r.live_activity_task_token && (
+                      <Popconfirm
+                        title={`Countdown Live Activity 종료(event:end) 푸시를 발송할까요? (task #${r.live_activity_task_id ?? "?"}) 업데이트 토큰은 발송 후 비워집니다.`}
+                        okText="발송"
+                        cancelText="취소"
+                        onConfirm={() =>
+                          liveActivityTestMutation.mutate({ id: r.id, kind: "task_countdown_end" })
+                        }
+                      >
+                        <Button size="small" danger loading={liveActivityTestMutation.isPending}>
+                          Countdown End
                         </Button>
                       </Popconfirm>
                     )}

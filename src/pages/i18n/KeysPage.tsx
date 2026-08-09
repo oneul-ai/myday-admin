@@ -165,7 +165,7 @@ export default function KeysPage() {
           />
           <Space wrap>
             <Input.Search
-              placeholder="key 검색..."
+              placeholder="key / 번역 값 검색..."
               allowClear
               style={{ width: 280 }}
               value={searchInput}

@@ -1,6 +1,7 @@
 import {
   Button,
   Card,
+  DatePicker,
   Form,
   Input,
   Space,
@@ -9,15 +10,22 @@ import {
   message,
 } from "antd";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import dayjs, { type Dayjs } from "dayjs";
 import {
   type MarketingInAppSetting,
   getMarketingInAppSetting,
   updateMarketingInAppSetting,
 } from "../api/appSettings";
 
+// Form 에서는 ends_at 을 DatePicker 값(Dayjs)으로 다루고, 저장/조회 시
+// 서버 포맷(ISO 8601, offset 포함)과 상호 변환한다.
+type MarketingInAppFormValues = Omit<MarketingInAppSetting, "ends_at"> & {
+  ends_at: Dayjs | null;
+};
+
 export default function MarketingInAppPage() {
   const queryClient = useQueryClient();
-  const [form] = Form.useForm<MarketingInAppSetting>();
+  const [form] = Form.useForm<MarketingInAppFormValues>();
   const imagePreview = Form.useWatch("image_url", form);
 
   const { data, isLoading } = useQuery({
@@ -38,12 +46,15 @@ export default function MarketingInAppPage() {
     },
   });
 
-  const handleSave = (values: MarketingInAppSetting) => {
+  const handleSave = (values: MarketingInAppFormValues) => {
     updateMutation.mutate({
       enabled: values.enabled,
       id: values.id || null,
       image_url: values.image_url || null,
       landing_url: values.landing_url || null,
+      min_app_version: values.min_app_version || null,
+      max_app_version: values.max_app_version || null,
+      ends_at: values.ends_at ? values.ends_at.format() : null,
     });
   };
 
@@ -65,7 +76,10 @@ export default function MarketingInAppPage() {
             form={form}
             layout="vertical"
             onFinish={handleSave}
-            initialValues={data}
+            initialValues={{
+              ...data,
+              ends_at: data.ends_at ? dayjs(data.ends_at) : null,
+            }}
           >
             <Form.Item
               name="enabled"
@@ -92,12 +106,52 @@ export default function MarketingInAppPage() {
             </Form.Item>
             <Form.Item
               name="landing_url"
-              label="랜딩 URL"
-              extra="이미지 탭 시 이동할 주소."
-              rules={[requiredWhenEnabled]}
+              label="랜딩 URL (옵셔널)"
+              extra="이미지 탭 시 이동할 주소. 비우면 탭해도 이동하지 않는 노출 전용 카드가 됩니다."
             >
               <Input placeholder="https://…" />
             </Form.Item>
+            <Typography.Title level={5} style={{ marginTop: 24 }}>
+              노출 조건 (옵셔널)
+            </Typography.Title>
+            <Typography.Paragraph type="secondary">
+              비워두면 제한 없이 노출됩니다. 조건은 서버가 앱 실행 시점에
+              평가합니다 — 버전 조건이 걸려 있으면 버전을 보내지 않는 옛
+              클라이언트에는 노출되지 않습니다.
+            </Typography.Paragraph>
+            <Space size="large" align="start">
+              <Form.Item
+                name="min_app_version"
+                label="최소 앱 버전 (이상)"
+                rules={[
+                  {
+                    pattern: /^\d+(\.\d+)*$/,
+                    message: "1.2.3 형태로 입력하세요",
+                  },
+                ]}
+              >
+                <Input placeholder="2.0.0" style={{ width: 160 }} />
+              </Form.Item>
+              <Form.Item
+                name="max_app_version"
+                label="최대 앱 버전 (이하)"
+                rules={[
+                  {
+                    pattern: /^\d+(\.\d+)*$/,
+                    message: "1.2.3 형태로 입력하세요",
+                  },
+                ]}
+              >
+                <Input placeholder="2.1.0" style={{ width: 160 }} />
+              </Form.Item>
+              <Form.Item
+                name="ends_at"
+                label="노출 종료 일시"
+                extra="이 시각이 지나면 자동으로 내려갑니다."
+              >
+                <DatePicker showTime format="YYYY-MM-DD HH:mm" />
+              </Form.Item>
+            </Space>
             {imagePreview && (
               <Form.Item label="이미지 미리보기">
                 <img

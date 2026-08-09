@@ -12,6 +12,7 @@ import {
   NotificationOutlined,
   LineChartOutlined,
   ReadOutlined,
+  GiftOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -30,6 +31,7 @@ const baseMenuItems = [
   },
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
   { key: "/ad-settings", icon: <NotificationOutlined />, label: "광고 배너" },
+  { key: "/marketing-in-app", icon: <GiftOutlined />, label: "인앱 메시지" },
   { key: "/blog-posts", icon: <ReadOutlined />, label: "블로그" },
   { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "활동 다이제스트" },
   {

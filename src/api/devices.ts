@@ -13,6 +13,10 @@ export interface Device {
   // 카운트다운 카드의 업데이트 토큰과 대상 task id (종료 시 쌍으로 비워진다)
   live_activity_task_token: string | null;
   live_activity_task_id: number | null;
+  // 잠금화면(Live Activity) 노출 설정 — 알림과 달리 유저가 아니라 기기 단위다.
+  // null 은 '미설정'(토글을 만진 적 없거나 Live Activity 미사용 기기) = 켜짐 취급.
+  live_activity_check_in_out_enabled: boolean | null;
+  live_activity_task_enabled: boolean | null;
   last_synced_at: string;
   created_at: string;
   updated_at: string;

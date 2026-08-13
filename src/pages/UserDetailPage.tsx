@@ -127,6 +127,16 @@ function PreferencesPanel({
   );
 }
 
+/** 잠금화면(Live Activity) 기기 설정 태그. null 은 미설정 = 켜짐으로 동작한다. */
+function renderLockScreenTag(label: string, enabled: boolean | null) {
+  if (enabled === null) return <Tag title="미설정 — 기본 켜짐으로 동작">{label}: default</Tag>;
+  return (
+    <Tag color={enabled ? "green" : "red"}>
+      {label}: {enabled ? "on" : "off"}
+    </Tag>
+  );
+}
+
 function NotificationSettingsPanel({
   data,
   loading,
@@ -821,6 +831,20 @@ export default function UserDetailPage() {
               title: "FCM Token",
               dataIndex: "fcm_token",
               ellipsis: true,
+            },
+            {
+              // 잠금화면(Live Activity) 노출 설정 — 앱 알림 설정 화면의 '잠금 화면' 섹션.
+              // 알림 설정과 달리 기기 단위라 Notification 탭이 아니라 여기 붙는다.
+              // 유저 소유 설정이라 어드민에서는 읽기 전용 (변경 API 도 status 만 허용).
+              title: "Lock Screen",
+              key: "live_activity_settings",
+              width: 200,
+              render: (_: unknown, r: Device) => (
+                <Space size={4} wrap>
+                  {renderLockScreenTag("Check-in/out", r.live_activity_check_in_out_enabled)}
+                  {renderLockScreenTag("Countdown", r.live_activity_task_enabled)}
+                </Space>
+              ),
             },
             {
               // 시작: push-to-start 토큰이 등록된 기기만. 종료: 실행 중인 활동의

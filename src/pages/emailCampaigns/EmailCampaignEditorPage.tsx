@@ -4,6 +4,7 @@ import {
   Button,
   Card,
   Col,
+  DatePicker,
   Descriptions,
   Form,
   Input,
@@ -22,7 +23,9 @@ import {
 import { ArrowLeftOutlined, MailOutlined, SendOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import utc from "dayjs/plugin/utc";
+import timezone from "dayjs/plugin/timezone";
 import {
   createEmailCampaign,
   getEmailCampaign,
@@ -33,6 +36,20 @@ import {
   type EmailCampaignInput,
   type PostmarkBulkStatus,
 } from "../../api/emailCampaigns";
+
+dayjs.extend(utc);
+dayjs.extend(timezone);
+
+// 가입 시각 범위는 브라우저 타임존과 무관하게 KST 기준으로 입력·표시한다.
+const KST = "Asia/Seoul";
+
+function kstToIso(v: Dayjs | null | undefined): string | null {
+  return v ? dayjs.tz(v.format("YYYY-MM-DD HH:mm:ss"), KST).toISOString() : null;
+}
+
+function isoToKst(v: string | null): Dayjs | null {
+  return v ? dayjs(v).tz(KST) : null;
+}
 
 const STATUS_META: Record<string, { label: string; color: string }> = {
   draft: { label: "draft", color: "gold" },
@@ -94,6 +111,8 @@ export default function EmailCampaignEditorPage() {
         noname_template_alias: values.noname_template_alias?.trim() ? values.noname_template_alias.trim() : null,
         template_model: parseTemplateModel(values.template_model ?? ""),
         marketing_agreed_only: values.marketing_agreed_only,
+        joined_after: kstToIso(values.joined_range?.[0]),
+        joined_before: kstToIso(values.joined_range?.[1]),
       };
       return isNew ? createEmailCampaign(body) : updateEmailCampaign(campaignId!, body);
     },
@@ -220,6 +239,10 @@ export default function EmailCampaignEditorPage() {
             noname_template_alias: campaign?.noname_template_alias ?? "",
             template_model: campaign ? JSON.stringify(campaign.template_model, null, 2) : "{\n  \n}",
             marketing_agreed_only: campaign?.marketing_agreed_only ?? true,
+            joined_range: [
+              isoToKst(campaign?.joined_after ?? null),
+              isoToKst(campaign?.joined_before ?? null),
+            ],
           }}
         >
           <Row gutter={16}>
@@ -258,6 +281,18 @@ export default function EmailCampaignEditorPage() {
               rows={6}
               style={{ fontFamily: "monospace" }}
               placeholder={'{\n  "preheader": "마이데이가 새로워졌어요!",\n  "app_link": "https://apps.apple.com/..."\n}'}
+            />
+          </Form.Item>
+          <Form.Item
+            name="joined_range"
+            label="가입 시각 범위 (KST)"
+            tooltip="양끝 포함. 한쪽만 지정하거나 비워둘 수 있고, 비우면 전체 기간입니다."
+          >
+            <DatePicker.RangePicker
+              showTime={{ format: "HH:mm" }}
+              format="YYYY-MM-DD HH:mm"
+              allowEmpty={[true, true]}
+              style={{ width: 420 }}
             />
           </Form.Item>
           <Form.Item
@@ -359,6 +394,19 @@ export default function EmailCampaignEditorPage() {
             <Descriptions.Item label="생성자">{campaign.created_by}</Descriptions.Item>
             <Descriptions.Item label="대상 필터">
               {campaign.marketing_agreed_only ? "마케팅 동의 유저" : "전체 유저"}
+            </Descriptions.Item>
+            <Descriptions.Item label="가입 시각 범위 (KST)">
+              {campaign.joined_after || campaign.joined_before
+                ? `${
+                    campaign.joined_after
+                      ? isoToKst(campaign.joined_after)!.format("YYYY-MM-DD HH:mm")
+                      : "처음"
+                  } ~ ${
+                    campaign.joined_before
+                      ? isoToKst(campaign.joined_before)!.format("YYYY-MM-DD HH:mm")
+                      : "끝"
+                  }`
+                : "전체 기간"}
             </Descriptions.Item>
           </Descriptions>
           {campaign.status === "sending" && campaign.progress != null && (

@@ -29,6 +29,9 @@ export interface EmailCampaign {
   // name 을 제외한 공통 템플릿 변수 (preheader, app_link 등)
   template_model: Record<string, string>;
   marketing_agreed_only: boolean;
+  // 가입 시각 범위 필터 (양끝 포함, ISO datetime). null 은 해당 방향 제한 없음.
+  joined_after: string | null;
+  joined_before: string | null;
   status: EmailCampaignStatus;
   recipient_count: number | null;
   postmark_bulk_ids: PostmarkBulkEntry[] | null;
@@ -54,6 +57,8 @@ export interface EmailCampaignInput {
   noname_template_alias?: string | null;
   template_model?: Record<string, string>;
   marketing_agreed_only?: boolean;
+  joined_after?: string | null;
+  joined_before?: string | null;
 }
 
 export async function getEmailCampaigns(params?: { offset?: number; limit?: number }) {

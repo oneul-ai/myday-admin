@@ -24,6 +24,8 @@ import TaskRecommendationsPage from "./pages/TaskRecommendationsPage";
 import I18nSyncPage from "./pages/i18n/SyncPage";
 import BlogPostsPage from "./pages/blog/BlogPostsPage";
 import BlogPostEditorPage from "./pages/blog/BlogPostEditorPage";
+import EmailCampaignsPage from "./pages/emailCampaigns/EmailCampaignsPage";
+import EmailCampaignEditorPage from "./pages/emailCampaigns/EmailCampaignEditorPage";
 import I18nKeysPage from "./pages/i18n/KeysPage";
 import I18nPublishPage from "./pages/i18n/PublishPage";
 
@@ -79,6 +81,30 @@ export default function App() {
                   <Route
                     path="/marketing-in-app"
                     element={<MarketingInAppPage />}
+                  />
+                  <Route
+                    path="/email-campaigns"
+                    element={
+                      <SuperAdminRoute>
+                        <EmailCampaignsPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/email-campaigns/new"
+                    element={
+                      <SuperAdminRoute>
+                        <EmailCampaignEditorPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/email-campaigns/:id"
+                    element={
+                      <SuperAdminRoute>
+                        <EmailCampaignEditorPage />
+                      </SuperAdminRoute>
+                    }
                   />
                   <Route path="/blog-posts" element={<BlogPostsPage />} />
                   <Route path="/blog-posts/new" element={<BlogPostEditorPage />} />

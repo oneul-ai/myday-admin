@@ -47,6 +47,7 @@ export interface User {
   uid: string;
   email: string;
   name: string;
+  provider: string | null;
   profile_image_url: string | null;
   terms_agreed: boolean;
   privacy_agreed: boolean;

@@ -974,16 +974,24 @@ export default function UserDetailPage() {
           </Space>
         }
         extra={
-          <Button
-            type="primary"
-            disabled={!!user.deleted_at}
-            onClick={() => {
-              form.setFieldsValue({ name: user.name, plan: user.plan });
-              setEditOpen(true);
-            }}
-          >
-            Edit
-          </Button>
+          <Space>
+            <Button
+              disabled={!!user.deleted_at}
+              onClick={() => navigate(`/user-auth-migration?uid=${user.uid}`)}
+            >
+              인증 이관
+            </Button>
+            <Button
+              type="primary"
+              disabled={!!user.deleted_at}
+              onClick={() => {
+                form.setFieldsValue({ name: user.name, plan: user.plan });
+                setEditOpen(true);
+              }}
+            >
+              Edit
+            </Button>
+          </Space>
         }
       >
         {user.deleted_at && (
@@ -998,6 +1006,7 @@ export default function UserDetailPage() {
         <Descriptions column={2} size="small">
           <Descriptions.Item label="UID">{user.uid}</Descriptions.Item>
           <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
+          <Descriptions.Item label="Provider">{user.provider ?? "-"}</Descriptions.Item>
           <Descriptions.Item label="Plan">
             <Tag color={user.plan === "FREE" ? "default" : "blue"}>{user.plan}</Tag>
           </Descriptions.Item>

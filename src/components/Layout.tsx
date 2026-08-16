@@ -14,6 +14,7 @@ import {
   ReadOutlined,
   GiftOutlined,
   MailOutlined,
+  SwapOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -60,6 +61,7 @@ const baseMenuItems = [
 
 const superAdminMenuItems = [
   { key: "/users", icon: <UserOutlined />, label: "Users" },
+  { key: "/user-auth-migration", icon: <SwapOutlined />, label: "인증 이관" },
   { key: "/email-campaigns", icon: <MailOutlined />, label: "이메일 캠페인" },
   { key: "/admins", icon: <SafetyOutlined />, label: "Admins" },
 ];

@@ -10,6 +10,7 @@ import LoginPage from "./pages/LoginPage";
 import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
+import UserAuthMigrationPage from "./pages/UserAuthMigrationPage";
 import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
 import HabitPresetsPage from "./pages/HabitPresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
@@ -68,6 +69,14 @@ export default function App() {
                     element={
                       <SuperAdminRoute>
                         <UserDetailPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/user-auth-migration"
+                    element={
+                      <SuperAdminRoute>
+                        <UserAuthMigrationPage />
                       </SuperAdminRoute>
                     }
                   />

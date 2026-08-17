@@ -10,6 +10,7 @@ import {
   Input,
   Popconfirm,
   Progress,
+  Radio,
   Row,
   Select,
   Space,
@@ -35,6 +36,7 @@ import {
   type EmailCampaign,
   type EmailCampaignInput,
   type PostmarkBulkStatus,
+  type SendMethod,
 } from "../../api/emailCampaigns";
 
 dayjs.extend(utc);
@@ -91,6 +93,9 @@ export default function EmailCampaignEditorPage() {
   const [form] = Form.useForm();
   const [testForm] = Form.useForm();
   const [sending, setSending] = useState(false);
+  // Bulk API 는 Postmark 계정 승인이 필요한데(ErrorCode 14), 미승인 상태로
+  // 보내면 캠페인이 failed 로 굳어버리므로 승인 불필요한 batch 를 기본값으로 둔다.
+  const [sendMethod, setSendMethod] = useState<SendMethod>("batch");
 
   const { data: campaign, isLoading } = useQuery({
     queryKey: ["email-campaign", campaignId],
@@ -133,11 +138,16 @@ export default function EmailCampaignEditorPage() {
   });
 
   const sendMutation = useMutation({
-    mutationFn: () => sendEmailCampaign(campaignId!),
+    mutationFn: () => sendEmailCampaign(campaignId!, sendMethod),
     onMutate: () => setSending(true),
     onSettled: () => setSending(false),
     onSuccess: (sent: EmailCampaign) => {
-      message.success(`발송이 접수되었습니다 (${sent.recipient_count}명).`);
+      // batch 는 동기 처리라 응답이 곧 발송 완료다.
+      message.success(
+        sent.status === "sent"
+          ? `발송이 완료되었습니다 (${sent.recipient_count}명).`
+          : `발송이 접수되었습니다 (${sent.recipient_count}명).`,
+      );
       queryClient.invalidateQueries({ queryKey: ["email-campaigns"] });
       queryClient.setQueryData(["email-campaign", sent.id], sent);
     },
@@ -177,7 +187,19 @@ export default function EmailCampaignEditorPage() {
       dataIndex: "template_alias",
       render: (v: string) => <Typography.Text code>{v}</Typography.Text>,
     },
-    { title: "Bulk ID", dataIndex: "bulk_id", width: 140 },
+    {
+      title: "방식",
+      dataIndex: "method",
+      width: 90,
+      render: (v: SendMethod | undefined) => <Tag>{v ?? "bulk"}</Tag>,
+    },
+    {
+      title: "Bulk ID",
+      dataIndex: "bulk_id",
+      width: 140,
+      render: (v: number | string | undefined) =>
+        v != null ? v : <Typography.Text type="secondary">—</Typography.Text>,
+    },
     { title: "수신자", dataIndex: "count", width: 90 },
     {
       title: "진행률",
@@ -191,9 +213,21 @@ export default function EmailCampaignEditorPage() {
     },
     {
       title: "상태",
-      dataIndex: "status",
-      width: 120,
-      render: (v: string | undefined) => (v ? <Tag>{v}</Tag> : <Typography.Text type="secondary">—</Typography.Text>),
+      key: "status",
+      width: 160,
+      render: (_: unknown, row: PostmarkBulkStatus) => {
+        // batch 항목은 접수 즉시 결과 확정 — 통별 실패 수를 상태로 보여준다.
+        if (row.method === "batch") {
+          return row.failed_count ? (
+            <Typography.Text type="warning" title={row.first_error}>
+              실패 {row.failed_count}건
+            </Typography.Text>
+          ) : (
+            <Tag color="green">완료</Tag>
+          );
+        }
+        return row.status ? <Tag>{row.status}</Tag> : <Typography.Text type="secondary">—</Typography.Text>;
+      },
     },
   ];
 
@@ -369,17 +403,36 @@ export default function EmailCampaignEditorPage() {
           </Card>
 
           <Card title="실발송">
-            <Popconfirm
-              title="정말 발송할까요?"
-              description={`${preview?.total ?? 0}명에게 즉시 발송됩니다. 되돌릴 수 없습니다.`}
-              okText="발송"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => sendMutation.mutate()}
-            >
-              <Button type="primary" danger icon={<SendOutlined />} loading={sending} disabled={!preview?.total}>
-                {preview?.total ?? 0}명에게 발송
-              </Button>
-            </Popconfirm>
+            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+              <div>
+                <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+                  발송 방식
+                </Typography.Text>
+                <Radio.Group
+                  value={sendMethod}
+                  onChange={(e) => setSendMethod(e.target.value as SendMethod)}
+                  options={[
+                    { value: "batch", label: "Batch (승인 불필요, 500통 단위 동기 발송)" },
+                    { value: "bulk", label: "Bulk API (Postmark 계정 승인 필요)" },
+                  ]}
+                />
+                <Typography.Paragraph type="secondary" style={{ marginTop: 8, marginBottom: 0 }}>
+                  Bulk API는 Postmark 지원팀 승인을 받은 계정만 쓸 수 있습니다. 미승인 상태로
+                  발송하면 캠페인이 실패로 기록되니, 승인 전에는 Batch를 사용하세요.
+                </Typography.Paragraph>
+              </div>
+              <Popconfirm
+                title="정말 발송할까요?"
+                description={`${preview?.total ?? 0}명에게 ${sendMethod === "batch" ? "Batch" : "Bulk API"} 방식으로 즉시 발송됩니다. 되돌릴 수 없습니다.`}
+                okText="발송"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => sendMutation.mutate()}
+              >
+                <Button type="primary" danger icon={<SendOutlined />} loading={sending} disabled={!preview?.total}>
+                  {preview?.total ?? 0}명에게 발송
+                </Button>
+              </Popconfirm>
+            </Space>
           </Card>
         </>
       )}
@@ -416,7 +469,7 @@ export default function EmailCampaignEditorPage() {
             <Alert type="warning" showIcon style={{ marginBottom: 16 }} message="진행률 조회 실패" description={campaign.postmark_error} />
           )}
           <Table<PostmarkBulkStatus>
-            rowKey={(r) => String(r.bulk_id)}
+            rowKey={(r, i) => (r.bulk_id != null ? String(r.bulk_id) : `batch-${i}`)}
             size="small"
             columns={bulkColumns}
             dataSource={campaign.postmark_statuses ?? (campaign.postmark_bulk_ids as PostmarkBulkStatus[] | null) ?? []}

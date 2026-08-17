@@ -10,10 +10,19 @@ export interface AudiencePreview {
   noname_will_be_skipped: boolean;
 }
 
+// 발송 방식: bulk = /email/bulk (Postmark 계정 승인 필요, 비동기+진행률 폴링),
+// batch = /email/batchWithTemplates (승인 불필요, 500통 단위 동기 처리)
+export type SendMethod = "bulk" | "batch";
+
 export interface PostmarkBulkEntry {
   template_alias: string;
-  bulk_id: number | string;
+  // bulk 항목에만 존재. batch 항목은 동기 완료라 폴링할 ID가 없다.
+  bulk_id?: number | string;
   count: number;
+  method?: SendMethod;
+  // batch 항목 전용: HTTP 200이어도 통별 실패가 섞일 수 있다.
+  failed_count?: number;
+  first_error?: string;
 }
 
 export interface PostmarkBulkStatus extends PostmarkBulkEntry {
@@ -87,8 +96,9 @@ export async function deleteEmailCampaign(id: number) {
 
 // 실발송. draft 캠페인에만 허용되며 서버가 draft → sending 전이를 원자적으로
 // 선점하므로 중복 클릭이 이중 발송으로 이어지지 않는다 (두 번째 요청은 409).
-export async function sendEmailCampaign(id: number) {
-  const { data } = await client.post<EmailCampaign>(`/email-campaigns/${id}/send`);
+// method=batch 는 동기 처리라 응답이 곧 최종 상태(sent)다.
+export async function sendEmailCampaign(id: number, method: SendMethod = "bulk") {
+  const { data } = await client.post<EmailCampaign>(`/email-campaigns/${id}/send`, { method });
   return data;
 }
 

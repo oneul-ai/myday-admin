@@ -92,6 +92,27 @@ export async function sendEmailCampaign(id: number) {
   return data;
 }
 
+export interface SuppressionSyncResult {
+  stream: string;
+  // dump 에서 받아온 활성 suppression 수
+  total: number;
+  // 이번 동기화로 새로 등록된 수
+  added: number;
+  // dump 에 없어 해제 처리된 로컬 row 수
+  released: number;
+  // 마케팅 수신동의가 꺼진 계정 수 (ManualSuppression + Recipient 만 해당)
+  marketing_synced: number;
+}
+
+// Postmark suppression(수신거부/바운스/스팸신고) 전량 동기화.
+// 평상시엔 웹훅이 실시간 반영하므로, 웹훅 유실 보정이나 최초 백필용.
+export async function syncSuppressions() {
+  const { data } = await client.post<SuppressionSyncResult>(
+    "/email-campaigns/suppressions/sync",
+  );
+  return data;
+}
+
 export async function sendTestEmail(
   id: number,
   body: { to: string; variant?: "named" | "noname"; name?: string },

@@ -1,13 +1,14 @@
 import { useMemo, useState } from "react";
 import { Button, Popconfirm, Space, Table, Tag, Typography, message } from "antd";
 import type { TablePaginationConfig } from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, SyncOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import {
   deleteEmailCampaign,
   getEmailCampaigns,
+  syncSuppressions,
   type EmailCampaign,
   type EmailCampaignStatus,
 } from "../../api/emailCampaigns";
@@ -40,6 +41,21 @@ export default function EmailCampaignsPage() {
     onError: (err: unknown) => {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
       message.error(detail ?? "삭제 실패");
+    },
+  });
+
+  const syncMutation = useMutation({
+    mutationFn: syncSuppressions,
+    onSuccess: (r) => {
+      message.success(
+        `수신거부 동기화 완료 (${r.stream}) — 활성 ${r.total} / 신규 ${r.added} / 해제 ${r.released} / 마케팅 동의 해제 ${r.marketing_synced}`,
+      );
+      // 발송 대상 미리보기 카운트가 바뀔 수 있어 캠페인 조회를 갱신한다.
+      queryClient.invalidateQueries({ queryKey: ["email-campaigns"] });
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      message.error(detail ?? "수신거부 동기화 실패");
     },
   });
 
@@ -131,13 +147,24 @@ export default function EmailCampaignsPage() {
         <Typography.Title level={4} style={{ margin: 0 }}>
           이메일 캠페인
         </Typography.Title>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => navigate("/email-campaigns/new")}
-        >
-          새 캠페인
-        </Button>
+        <Space>
+          <Popconfirm
+            title="Postmark 수신거부 목록을 동기화할까요?"
+            description="평상시엔 웹훅이 실시간 반영합니다. 웹훅 유실 보정이나 최초 백필에만 필요합니다."
+            onConfirm={() => syncMutation.mutate()}
+          >
+            <Button icon={<SyncOutlined />} loading={syncMutation.isPending}>
+              수신거부 동기화
+            </Button>
+          </Popconfirm>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => navigate("/email-campaigns/new")}
+          >
+            새 캠페인
+          </Button>
+        </Space>
       </Space>
 
       <Table<EmailCampaign>

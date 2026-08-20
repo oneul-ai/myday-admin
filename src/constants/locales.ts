@@ -1,7 +1,17 @@
-// 언어별 오버라이드를 지원하는 locale (ko 제외 — 기본값이 곧 한국어).
-// 서버(myday-api services/locale.py SUPPORTED_LOCALES)와 맞춰야 한다.
+// 언어별 오버라이드를 지원하는 locale — 서버(myday-api services/locale.py
+// SUPPORTED_LOCALES)와 맞춰야 하며, 각 설정의 기본 언어는 목록에서 제외한다.
+
+// 기본 언어가 한국어인 설정용 (인앱 메시지) — ko 제외.
 export const OVERRIDE_LOCALES = [
   { code: "en", label: "영어 (en)" },
+  { code: "ja", label: "일본어 (ja)" },
+  { code: "zh-Hans", label: "중국어 간체 (zh-Hans)" },
+  { code: "zh-Hant", label: "중국어 번체 (zh-Hant)" },
+] as const;
+
+// 기본 언어가 영어인 설정용 (앱 링크) — en 제외.
+export const OVERRIDE_LOCALES_EN_BASE = [
+  { code: "ko", label: "한국어 (ko)" },
   { code: "ja", label: "일본어 (ja)" },
   { code: "zh-Hans", label: "중국어 간체 (zh-Hans)" },
   { code: "zh-Hant", label: "중국어 번체 (zh-Hant)" },

@@ -5,7 +5,7 @@ import {
   getAppLinksSettings,
   updateAppLinksSettings,
 } from "../api/appSettings";
-import { OVERRIDE_LOCALES } from "../constants/locales";
+import { OVERRIDE_LOCALES_EN_BASE } from "../constants/locales";
 
 const LINKS = [
   {
@@ -57,7 +57,7 @@ export default function AppLinksPage() {
     for (const { name } of LINKS) {
       const entry = values[name];
       const localizations: Record<string, string> = {};
-      for (const { code } of OVERRIDE_LOCALES) {
+      for (const { code } of OVERRIDE_LOCALES_EN_BASE) {
         const url = entry?.localizations?.[code];
         if (url) localizations[code] = url;
       }
@@ -81,7 +81,7 @@ export default function AppLinksPage() {
           >
             <Typography.Paragraph type="secondary">
               앱 실행 시 /awake 응답 links 로 내려가는 주소들입니다. 앱 언어에
-              해당하는 언어별 URL 이 있으면 그것이, 없으면 기본(한국어) URL 이
+              해당하는 언어별 URL 이 있으면 그것이, 없으면 기본(영어) URL 이
               내려갑니다. 기본 URL 까지 비우면 null 로 내려가 앱에서 해당
               진입점을 숨길 수 있습니다.
             </Typography.Paragraph>
@@ -94,17 +94,17 @@ export default function AppLinksPage() {
               >
                 <Form.Item
                   name={[name, "url"]}
-                  label="URL (기본 · 한국어)"
+                  label="URL (기본 · 영어)"
                   extra={extra}
                 >
                   <Input placeholder="https://…" />
                 </Form.Item>
-                {OVERRIDE_LOCALES.map(({ code, label }) => (
+                {OVERRIDE_LOCALES_EN_BASE.map(({ code, label }) => (
                   <Form.Item
                     key={code}
                     name={[name, "localizations", code]}
                     label={label}
-                    extra="비우면 기본(한국어) URL 로 폴백합니다."
+                    extra="비우면 기본(영어) URL 로 폴백합니다."
                   >
                     <Input placeholder="https://…" />
                   </Form.Item>

@@ -17,6 +17,7 @@ import FeedbacksPage from "./pages/FeedbacksPage";
 import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
 import AdSettingsPage from "./pages/AdSettingsPage";
+import AppLinksPage from "./pages/AppLinksPage";
 import MarketingInAppPage from "./pages/MarketingInAppPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
@@ -91,6 +92,7 @@ export default function App() {
                     path="/marketing-in-app"
                     element={<MarketingInAppPage />}
                   />
+                  <Route path="/app-links" element={<AppLinksPage />} />
                   <Route
                     path="/email-campaigns"
                     element={

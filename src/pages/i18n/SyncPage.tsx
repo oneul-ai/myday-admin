@@ -26,6 +26,7 @@ import {
   type SyncApplyResponse,
   type SyncPreviewResponse,
 } from "../../api/i18n";
+import DevEnvAlert from "./DevEnvAlert";
 
 const { Title, Text, Paragraph } = Typography;
 const { Dragger } = Upload;
@@ -139,6 +140,8 @@ export default function SyncPage() {
         Xcode 의 <Text code>Localizable.xcstrings</Text> 파일을 업로드하면 신규 키 등록,
         삭제된 키 deprecate, 한국어 소스값이 자동으로 동기화됩니다.
       </Paragraph>
+
+      <DevEnvAlert />
 
       <Card>
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>

@@ -44,6 +44,7 @@ import {
   type I18nStatus,
   type I18nTranslation,
 } from "../../api/i18n";
+import DevEnvAlert from "./DevEnvAlert";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -152,6 +153,8 @@ export default function KeysPage() {
         ko 값은 xcstrings sync 로 자동 갱신되며, 다른 locale 은 셀을 클릭해 직접 편집하세요.
         편집은 draft 로 저장되고 Publish 페이지에서 published 상태로 발행됩니다.
       </Paragraph>
+
+      <DevEnvAlert />
 
       <Card>
         <Space direction="vertical" size="middle" style={{ width: "100%" }}>
@@ -712,6 +715,12 @@ function TranslationEditorModal({
   const [value, setValue] = useState(current?.value ?? "");
   const [status, setStatus] = useState<I18nStatus>(current?.status ?? "draft");
 
+  const onValueChange = (v: string) => {
+    setValue(v);
+    // 값이 저장본과 달라지면 자동으로 draft, 원래 값으로 되돌리면 원래 상태로 복구.
+    if (current) setStatus(v === current.value ? current.status : "draft");
+  };
+
   const mutation = useMutation({
     mutationFn: async () => {
       if (current) {
@@ -792,7 +801,7 @@ function TranslationEditorModal({
           <Input.TextArea
             rows={4}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => onValueChange(e.target.value)}
             placeholder={`${locale} 번역`}
           />
         </div>
@@ -809,6 +818,9 @@ function TranslationEditorModal({
               onChange={(v) => setStatus(v as I18nStatus)}
             />
           </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            값을 수정하면 자동으로 draft 상태가 됩니다.
+          </Text>
         </div>
         {current && (
           <Text type="secondary" style={{ fontSize: 12 }}>

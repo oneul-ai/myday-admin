@@ -25,6 +25,7 @@ import {
   type PublishDiffResponse,
   type PublishStatusRow,
 } from "../../api/i18n";
+import DevEnvAlert from "./DevEnvAlert";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -132,6 +133,8 @@ export default function PublishPage() {
         각 (scope, locale) 의 <Text code>published</Text> 상태 번역만 모아 새 bundle 로 발행합니다.
         draft/review 상태 번역은 발행되지 않으며 deprecated 키는 제외됩니다.
       </Paragraph>
+
+      <DevEnvAlert />
 
       {isLoading ? (
         <Card>

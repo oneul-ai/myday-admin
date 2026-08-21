@@ -9,6 +9,15 @@ export const OVERRIDE_LOCALES = [
   { code: "zh-Hant", label: "중국어 번체 (zh-Hant)" },
 ] as const;
 
+// 지원 locale 전체의 표시 라벨 (기기 언어 등 읽기 전용 표시용).
+export const LOCALE_LABELS: Record<string, string> = {
+  ko: "한국어 (ko)",
+  en: "영어 (en)",
+  ja: "일본어 (ja)",
+  "zh-Hans": "중국어 간체 (zh-Hans)",
+  "zh-Hant": "중국어 번체 (zh-Hant)",
+};
+
 // 기본 언어가 영어인 설정용 (앱 링크) — en 제외.
 export const OVERRIDE_LOCALES_EN_BASE = [
   { code: "ko", label: "한국어 (ko)" },

@@ -326,6 +326,7 @@ import { getUserCalendars, getUserIntegrations } from "../api/calendars";
 import { getUserEvents } from "../api/schedules";
 import { getUserRepeatTasks, type RepeatTask } from "../api/routines";
 import { useMe } from "../auth/useMe";
+import { LOCALE_LABELS } from "../constants/locales";
 import dayjs from "dayjs";
 import { useState } from "react";
 
@@ -803,6 +804,19 @@ export default function UserDetailPage() {
               dataIndex: "platform",
               width: 100,
               render: (v: string) => <Tag>{v}</Tag>,
+            },
+            {
+              // 기기의 앱 언어 — worker 가 이메일/앱 푸시를 이 언어로 발송한다.
+              // null 은 미설정(구버전 클라이언트)으로 ko 폴백.
+              title: "Language",
+              dataIndex: "language",
+              width: 150,
+              render: (v: string | null) =>
+                v ? (
+                  <Tag color="blue">{LOCALE_LABELS[v] ?? v}</Tag>
+                ) : (
+                  <Typography.Text type="secondary">미설정 (ko 폴백)</Typography.Text>
+                ),
             },
             {
               title: "Status",

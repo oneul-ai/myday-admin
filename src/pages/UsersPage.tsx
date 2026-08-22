@@ -3,33 +3,57 @@ import { Input, Space, Switch, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { getUsers, type User } from "../api/users";
-import type { TablePaginationConfig } from "antd";
+import type { TableProps } from "antd";
 import dayjs from "dayjs";
+
+type SortField = "joined_at" | "last_signed_in_at";
+const DEFAULT_SORT = { field: "joined_at" as SortField, order: "desc" as const };
 
 export default function UsersPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [includeDeleted, setIncludeDeleted] = useState(false);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 20 });
+  const [sort, setSort] = useState<{ field: SortField; order: "asc" | "desc" }>(DEFAULT_SORT);
 
   const offset = (pagination.current - 1) * pagination.pageSize;
 
   const { data, isLoading } = useQuery({
-    queryKey: ["users", { q: search, offset, limit: pagination.pageSize, includeDeleted }],
+    queryKey: [
+      "users",
+      { q: search, offset, limit: pagination.pageSize, includeDeleted, sort },
+    ],
     queryFn: () =>
       getUsers({
         q: search || undefined,
         offset,
         limit: pagination.pageSize,
         include_deleted: includeDeleted || undefined,
+        sort: sort.field,
+        order: sort.order,
       }),
   });
 
-  const handleTableChange = (p: TablePaginationConfig) => {
-    setPagination({ current: p.current ?? 1, pageSize: p.pageSize ?? 20 });
+  const handleTableChange: TableProps<User>["onChange"] = (p, _filters, sorter) => {
+    const s = Array.isArray(sorter) ? sorter[0] : sorter;
+    const nextSort = s?.order
+      ? {
+          field: s.field as SortField,
+          order: s.order === "ascend" ? ("asc" as const) : ("desc" as const),
+        }
+      : DEFAULT_SORT;
+    const sortChanged = nextSort.field !== sort.field || nextSort.order !== sort.order;
+    setSort(nextSort);
+    setPagination({
+      current: sortChanged ? 1 : p.current ?? 1,
+      pageSize: p.pageSize ?? 20,
+    });
   };
 
-  const columns = [
+  const sortOrderOf = (field: SortField) =>
+    sort.field === field ? (sort.order === "asc" ? ("ascend" as const) : ("descend" as const)) : null;
+
+  const columns: TableProps<User>["columns"] = [
     {
       title: "Status",
       dataIndex: "deleted_at",
@@ -69,12 +93,16 @@ export default function UsersPage() {
       title: "Joined",
       dataIndex: "joined_at",
       width: 120,
+      sorter: true,
+      sortOrder: sortOrderOf("joined_at"),
       render: (v: string) => dayjs(v).format("YYYY-MM-DD"),
     },
     {
       title: "Last Sign-in",
       dataIndex: "last_signed_in_at",
       width: 140,
+      sorter: true,
+      sortOrder: sortOrderOf("last_signed_in_at"),
       render: (v: string) => dayjs(v).format("YYYY-MM-DD HH:mm"),
     },
   ];

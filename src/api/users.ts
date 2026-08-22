@@ -76,6 +76,8 @@ export async function getUsers(params: {
   offset?: number;
   limit?: number;
   include_deleted?: boolean;
+  sort?: "joined_at" | "last_signed_in_at";
+  order?: "asc" | "desc";
 }) {
   const { data } = await client.get<UsersResponse>("/users", { params });
   return data;

@@ -1,4 +1,4 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   Alert,
   Button,
@@ -335,6 +335,7 @@ const SUPER_ADMIN_ONLY_TABS = new Set(["tasks", "calendars", "schedules", "routi
 export default function UserDetailPage() {
   const { uid } = useParams<{ uid: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [editOpen, setEditOpen] = useState(false);
   const [form] = Form.useForm();
@@ -974,7 +975,8 @@ export default function UserDetailPage() {
       <Button
         type="text"
         icon={<ArrowLeftOutlined />}
-        onClick={() => navigate("/users")}
+        // 목록에서 넘어온 경우 히스토리 back 으로 목록 상태(URL 쿼리) 유지, 직접 진입(딥링크)이면 목록으로
+        onClick={() => (location.key !== "default" ? navigate(-1) : navigate("/users"))}
         style={{ marginBottom: 16 }}
       >
         Back to Users

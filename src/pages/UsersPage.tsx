@@ -111,6 +111,20 @@ export default function UsersPage() {
       },
     },
     {
+      title: "Timezone",
+      dataIndex: "last_timezone",
+      width: 150,
+      render: (v: string | null) =>
+        v ?? <Typography.Text type="secondary">—</Typography.Text>,
+    },
+    {
+      title: "City",
+      dataIndex: "last_city",
+      width: 130,
+      render: (v: string | null) =>
+        v ?? <Typography.Text type="secondary">—</Typography.Text>,
+    },
+    {
       title: "User UID",
       dataIndex: "uid",
       width: 280,

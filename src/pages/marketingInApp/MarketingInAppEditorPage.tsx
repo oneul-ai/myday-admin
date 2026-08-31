@@ -10,15 +10,18 @@ import {
   Switch,
   Tag,
   Typography,
+  Upload,
   message,
 } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, UploadOutlined } from "@ant-design/icons";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   type MarketingCampaign,
   getMarketingCampaigns,
+  uploadMarketingInAppImage,
   upsertMarketingCampaign,
 } from "../../api/appSettings";
 import { OVERRIDE_LOCALES } from "../../constants/locales";
@@ -44,6 +47,49 @@ type CampaignFormValues = Omit<
 function errorDetail(err: unknown) {
   return (err as { response?: { data?: { detail?: string } } })?.response?.data
     ?.detail;
+}
+
+/** 이미지 URL 입력 — 직접 입력하거나 업로드 버튼으로 파일을 올려 URL 을 채운다.
+ * Form.Item 이 주입하는 value/onChange 를 그대로 받아 문자열 값으로 동작한다
+ * (업로드 성공 시 onChange 에 URL 문자열을 넘기면 Form 이 값으로 채택한다). */
+function ImageUrlInput({
+  value,
+  onChange,
+}: {
+  value?: string | null;
+  onChange?: (value: string) => void;
+}) {
+  const [uploading, setUploading] = useState(false);
+
+  const handleBeforeUpload = (file: File) => {
+    setUploading(true);
+    uploadMarketingInAppImage(file)
+      .then(({ url }) => onChange?.(url))
+      .catch((err: unknown) => {
+        message.error(errorDetail(err) ?? "이미지 업로드 실패");
+      })
+      .finally(() => setUploading(false));
+    return false; // 직접 업로드하므로 antd 기본 업로드 동작을 막는다.
+  };
+
+  return (
+    <Space.Compact style={{ width: "100%" }}>
+      <Input
+        value={value ?? undefined}
+        onChange={(e) => onChange?.(e.target.value)}
+        placeholder="https://…"
+      />
+      <Upload
+        accept="image/jpeg,image/png,image/webp,image/gif"
+        showUploadList={false}
+        beforeUpload={handleBeforeUpload}
+      >
+        <Button icon={<UploadOutlined />} loading={uploading}>
+          업로드
+        </Button>
+      </Upload>
+    </Space.Compact>
+  );
 }
 
 function ImagePreview({ url }: { url: string }) {
@@ -73,7 +119,7 @@ function LocalizationFields({
         label="이미지 URL"
         extra="비우면 이 언어에는 기본(한국어) 이미지·랜딩이 그대로 내려갑니다."
       >
-        <Input placeholder="https://…" />
+        <ImageUrlInput />
       </Form.Item>
       <Form.Item
         name={["localizations", code, "landing_url"]}
@@ -204,9 +250,10 @@ function CampaignForm({
       <Form.Item
         name="image_url"
         label="이미지 URL (기본 · 한국어)"
+        extra="직접 입력하거나 업로드 버튼으로 이미지 파일을 올리면 URL 이 채워집니다."
         rules={[requiredWhenEnabled]}
       >
-        <Input placeholder="https://…" />
+        <ImageUrlInput />
       </Form.Item>
       <Form.Item
         name="landing_url"

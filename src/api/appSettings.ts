@@ -71,6 +71,18 @@ export async function deleteMarketingCampaign(id: string) {
   return data;
 }
 
+/** 인앱 마케팅 카드 이미지를 myday-api 를 통해 GCS 공개 버킷에 올리고 공개 URL 을 받는다. */
+export async function uploadMarketingInAppImage(file: File) {
+  const fd = new FormData();
+  fd.append("image", file);
+  const { data } = await client.post<{ url: string }>(
+    "/app-settings/marketing-in-app/images",
+    fd,
+    { headers: { "Content-Type": "multipart/form-data" } },
+  );
+  return data;
+}
+
 /** 앱 링크 하나 — url 은 기본(한국어) 값, localizations 는 {locale: url} 오버라이드. */
 export interface AppLinkSetting {
   url: string | null;

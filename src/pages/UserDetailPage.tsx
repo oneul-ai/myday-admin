@@ -401,7 +401,8 @@ export default function UserDetailPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (body: { name?: string; plan?: string }) => updateUser(uid!, body),
+    mutationFn: (body: { name?: string; plan?: string; is_tester?: boolean }) =>
+      updateUser(uid!, body),
     onSuccess: () => {
       message.success("User updated");
       queryClient.invalidateQueries({ queryKey: ["user", uid] });
@@ -1001,7 +1002,11 @@ export default function UserDetailPage() {
               type="primary"
               disabled={!!user.deleted_at}
               onClick={() => {
-                form.setFieldsValue({ name: user.name, plan: user.plan });
+                form.setFieldsValue({
+                  name: user.name,
+                  plan: user.plan,
+                  is_tester: user.is_tester,
+                });
                 setEditOpen(true);
               }}
             >
@@ -1025,6 +1030,9 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Provider">{user.provider ?? "-"}</Descriptions.Item>
           <Descriptions.Item label="Plan">
             <Tag color={user.plan === "FREE" ? "default" : "blue"}>{user.plan}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="Tester">
+            {user.is_tester ? <Tag color="gold">테스터</Tag> : <Tag>일반</Tag>}
           </Descriptions.Item>
           <Descriptions.Item label="City">{user.last_city ?? "-"}</Descriptions.Item>
           <Descriptions.Item label="Timezone">{user.last_timezone ?? "-"}</Descriptions.Item>
@@ -1086,6 +1094,14 @@ export default function UserDetailPage() {
                 { label: "PLUS", value: "PLUS" },
               ]}
             />
+          </Form.Item>
+          <Form.Item
+            name="is_tester"
+            label="Tester"
+            valuePropName="checked"
+            extra="켜면 출시 전 기능이 이 유저에게 미리 노출됩니다. Plan(과금)과는 무관합니다."
+          >
+            <Switch />
           </Form.Item>
         </Form>
       </Modal>

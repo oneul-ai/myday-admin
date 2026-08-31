@@ -104,10 +104,15 @@ export default function UsersPage() {
     {
       title: "Plan",
       dataIndex: "plan",
-      width: 100,
-      render: (plan: string) => {
+      width: 150,
+      render: (plan: string, row: User) => {
         const color = plan === "FREE" ? "default" : "blue";
-        return <Tag color={color}>{plan}</Tag>;
+        return (
+          <Space size={4}>
+            <Tag color={color}>{plan}</Tag>
+            {row.is_tester && <Tag color="gold">테스터</Tag>}
+          </Space>
+        );
       },
     },
     {

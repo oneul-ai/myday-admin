@@ -55,6 +55,8 @@ export interface User {
   joined_at: string;
   last_signed_in_at: string;
   plan: string;
+  /** 테스터 — 출시 전 기능 미리보기 대상. plan(과금)과 무관. */
+  is_tester: boolean;
   last_city: string | null;
   last_timezone: string | null;
   last_weather_data: WeatherSnapshot | null;
@@ -88,7 +90,10 @@ export async function getUser(uid: string) {
   return data;
 }
 
-export async function updateUser(uid: string, body: { name?: string; plan?: string }) {
+export async function updateUser(
+  uid: string,
+  body: { name?: string; plan?: string; is_tester?: boolean },
+) {
   const { data } = await client.patch<User>(`/users/${uid}`, body);
   return data;
 }

@@ -83,6 +83,31 @@ export async function uploadMarketingInAppImage(file: File) {
   return data;
 }
 
+/** 원격 설정 — /awake 의 remote_config 섹션으로 그대로 내려가는 key-value.
+ * 값은 임의 JSON. key 는 언제든 삭제될 수 있으므로 클라이언트 계약상 항상 optional. */
+export type RemoteConfig = Record<string, unknown>;
+
+export async function getRemoteConfig() {
+  const { data } = await client.get<RemoteConfig>("/app-settings/remote-config");
+  return data;
+}
+
+/** 항목 추가/갱신 — 갱신된 전체 map 을 반환한다. */
+export async function setRemoteConfigEntry(key: string, value: unknown) {
+  const { data } = await client.put<RemoteConfig>(
+    `/app-settings/remote-config/${encodeURIComponent(key)}`,
+    { value },
+  );
+  return data;
+}
+
+export async function deleteRemoteConfigEntry(key: string) {
+  const { data } = await client.delete<RemoteConfig>(
+    `/app-settings/remote-config/${encodeURIComponent(key)}`,
+  );
+  return data;
+}
+
 /** 앱 링크 하나 — url 은 기본(한국어) 값, localizations 는 {locale: url} 오버라이드. */
 export interface AppLinkSetting {
   url: string | null;

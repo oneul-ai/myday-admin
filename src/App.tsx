@@ -18,6 +18,7 @@ import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
 import AdSettingsPage from "./pages/AdSettingsPage";
 import AppLinksPage from "./pages/AppLinksPage";
+import RemoteConfigPage from "./pages/RemoteConfigPage";
 import MarketingInAppListPage from "./pages/marketingInApp/MarketingInAppListPage";
 import MarketingInAppEditorPage from "./pages/marketingInApp/MarketingInAppEditorPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
@@ -102,6 +103,7 @@ export default function App() {
                     element={<MarketingInAppEditorPage />}
                   />
                   <Route path="/app-links" element={<AppLinksPage />} />
+                  <Route path="/remote-config" element={<RemoteConfigPage />} />
                   <Route
                     path="/email-campaigns"
                     element={

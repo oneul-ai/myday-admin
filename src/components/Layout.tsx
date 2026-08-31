@@ -11,6 +11,7 @@ import {
   MessageOutlined,
   NotificationOutlined,
   LineChartOutlined,
+  ControlOutlined,
   ReadOutlined,
   GiftOutlined,
   LinkOutlined,
@@ -36,6 +37,7 @@ const baseMenuItems = [
   { key: "/ad-settings", icon: <NotificationOutlined />, label: "광고 배너" },
   { key: "/marketing-in-app", icon: <GiftOutlined />, label: "인앱 메시지" },
   { key: "/app-links", icon: <LinkOutlined />, label: "앱 링크" },
+  { key: "/remote-config", icon: <ControlOutlined />, label: "Remote Config" },
   { key: "/blog-posts", icon: <ReadOutlined />, label: "블로그" },
   { key: "/metrics/hourly", icon: <LineChartOutlined />, label: "활동 다이제스트" },
   {

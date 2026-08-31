@@ -23,9 +23,11 @@ export interface MarketingInAppLocalization {
   landing_url: string | null;
 }
 
-export interface MarketingInAppSetting {
+/** 인앱 마케팅 캠페인 하나. 서버 리스트 순서가 곧 노출 우선순위다. */
+export interface MarketingCampaign {
+  /** 클라이언트가 노출/닫음 이력을 구분하는 식별자. 언어와 무관하게 하나. */
+  id: string;
   enabled: boolean;
-  id: string | null;
   /** 기본(한국어) 값 — 언어별 설정이 없는 언어에 폴백으로 내려간다. */
   image_url: string | null;
   landing_url: string | null;
@@ -38,19 +40,33 @@ export interface MarketingInAppSetting {
   ends_at: string | null;
 }
 
-export async function getMarketingInAppSetting() {
-  const { data } = await client.get<MarketingInAppSetting>(
+/** 서버 응답 — 우선순위 순 캠페인 리스트. 갱신/삭제도 전체 리스트를 돌려준다. */
+export interface MarketingCampaignList {
+  campaigns: MarketingCampaign[];
+}
+
+export async function getMarketingCampaigns() {
+  const { data } = await client.get<MarketingCampaignList>(
     "/app-settings/marketing-in-app",
   );
   return data;
 }
 
-export async function updateMarketingInAppSetting(
-  body: Partial<MarketingInAppSetting>,
+/** id 기준 부분 갱신 — 없으면 생성(맨 뒤에 추가). position(0-base)으로 우선순위 이동. */
+export async function upsertMarketingCampaign(
+  id: string,
+  body: Partial<Omit<MarketingCampaign, "id">> & { position?: number },
 ) {
-  const { data } = await client.put<MarketingInAppSetting>(
-    "/app-settings/marketing-in-app",
+  const { data } = await client.put<MarketingCampaignList>(
+    `/app-settings/marketing-in-app/${encodeURIComponent(id)}`,
     body,
+  );
+  return data;
+}
+
+export async function deleteMarketingCampaign(id: string) {
+  const { data } = await client.delete<MarketingCampaignList>(
+    `/app-settings/marketing-in-app/${encodeURIComponent(id)}`,
   );
   return data;
 }

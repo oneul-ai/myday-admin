@@ -1,40 +1,33 @@
 import {
+  Alert,
   Button,
   Card,
   DatePicker,
-  Empty,
   Form,
   type FormInstance,
   Input,
-  Popconfirm,
   Space,
   Switch,
   Tag,
   Typography,
   message,
 } from "antd";
-import {
-  ArrowDownOutlined,
-  ArrowUpOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
-import { useState } from "react";
+import { ArrowLeftOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useNavigate, useParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   type MarketingCampaign,
-  deleteMarketingCampaign,
   getMarketingCampaigns,
   upsertMarketingCampaign,
-} from "../api/appSettings";
-import { OVERRIDE_LOCALES } from "../constants/locales";
+} from "../../api/appSettings";
+import { OVERRIDE_LOCALES } from "../../constants/locales";
 
 // Form 에서는 ends_at 을 DatePicker 값(Dayjs)으로 다루고, 저장/조회 시
 // 서버 포맷(ISO 8601, offset 포함)과 상호 변환한다. localizations 는 폼에서
 // 모든 locale 필드를 노출하므로 빈 문자열이 섞인 partial 형태가 된다 —
 // 저장 시 image_url 이 채워진 항목만 서버 포맷으로 걸러 보낸다.
-// id 는 기존 캠페인에서는 카드 타이틀로만 표시(수정 불가)하고 신규 작성
+// id 는 기존 캠페인에서는 타이틀로만 표시(수정 불가)하고 신규 작성
 // 폼에서만 입력받는다.
 type CampaignFormValues = Omit<
   MarketingCampaign,
@@ -110,13 +103,13 @@ function LocalizationFields({
   );
 }
 
-function CampaignEditor({
+function CampaignForm({
   campaign,
-  onSaved,
+  onCreated,
 }: {
   /** null 이면 신규 작성 폼 — 캠페인 ID 필드를 입력받는다. */
   campaign: MarketingCampaign | null;
-  onSaved?: () => void;
+  onCreated?: (id: string) => void;
 }) {
   const queryClient = useQueryClient();
   const [form] = Form.useForm<CampaignFormValues>();
@@ -130,10 +123,10 @@ function CampaignEditor({
       id: string;
       body: Parameters<typeof upsertMarketingCampaign>[1];
     }) => upsertMarketingCampaign(id, body),
-    onSuccess: (list) => {
+    onSuccess: (list, { id }) => {
       queryClient.setQueryData(["marketing-in-app"], list);
       message.success("저장되었습니다");
-      onSaved?.();
+      if (!campaign) onCreated?.(id);
     },
     onError: (err: unknown) => {
       message.error(errorDetail(err) ?? "저장 실패");
@@ -204,7 +197,7 @@ function CampaignEditor({
         name="enabled"
         label="노출"
         valuePropName="checked"
-        extra="켜면 앱 실행 시 /awake 응답으로 내려갑니다. 여러 캠페인이 켜져 있으면 이 페이지의 순서(우선순위)대로 함께 내려갑니다."
+        extra="켜면 앱 실행 시 /awake 응답으로 내려갑니다. 여러 캠페인이 켜져 있으면 목록의 순서(우선순위)대로 함께 내려갑니다."
       >
         <Switch />
       </Form.Item>
@@ -292,143 +285,62 @@ function CampaignEditor({
   );
 }
 
-export default function MarketingInAppPage() {
-  const queryClient = useQueryClient();
-  const [creating, setCreating] = useState(false);
+export default function MarketingInAppEditorPage() {
+  // /marketing-in-app/new 라우트에는 param 이 없다 — campaignId 없음 = 신규 작성.
+  const { campaignId } = useParams<{ campaignId: string }>();
+  const isNew = campaignId === undefined;
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["marketing-in-app"],
     queryFn: getMarketingCampaigns,
   });
-  const campaigns = data?.campaigns ?? [];
-
-  const moveMutation = useMutation({
-    mutationFn: ({ id, position }: { id: string; position: number }) =>
-      upsertMarketingCampaign(id, { position }),
-    onSuccess: (list) => {
-      queryClient.setQueryData(["marketing-in-app"], list);
-    },
-    onError: (err: unknown) => {
-      message.error(errorDetail(err) ?? "순서 변경 실패");
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: deleteMarketingCampaign,
-    onSuccess: (list) => {
-      queryClient.setQueryData(["marketing-in-app"], list);
-      message.success("삭제되었습니다");
-    },
-    onError: (err: unknown) => {
-      message.error(errorDetail(err) ?? "삭제 실패");
-    },
-  });
+  const campaign = isNew
+    ? null
+    : (data?.campaigns ?? []).find((c) => c.id === campaignId) ?? null;
 
   return (
-    <>
-      <Space
-        style={{
-          width: "100%",
-          maxWidth: 640,
-          justifyContent: "space-between",
-          marginBottom: 16,
-        }}
-      >
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          인앱 마케팅 메시지
-        </Typography.Title>
+    <div style={{ maxWidth: 640 }}>
+      <Space style={{ marginBottom: 16 }}>
         <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => setCreating(true)}
-          disabled={creating}
-        >
-          새 캠페인
-        </Button>
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate("/marketing-in-app")}
+        />
+        <Typography.Title level={4} style={{ margin: 0 }}>
+          {isNew ? "새 캠페인" : campaignId}
+        </Typography.Title>
+        {campaign &&
+          (campaign.enabled ? (
+            <Tag color="green">노출 중</Tag>
+          ) : (
+            <Tag>꺼짐</Tag>
+          ))}
       </Space>
-      <Typography.Paragraph type="secondary" style={{ maxWidth: 640 }}>
-        캠페인 순서가 곧 노출 우선순위입니다 — 켜진 캠페인들이 위에서부터
-        순서대로 클라이언트에 내려갑니다.
-      </Typography.Paragraph>
 
-      {isLoading && <Card style={{ maxWidth: 640 }} loading />}
+      {!isNew && isLoading && <Card loading />}
 
-      {!isLoading && campaigns.length === 0 && !creating && (
-        <Card style={{ maxWidth: 640 }}>
-          <Empty description="등록된 캠페인이 없습니다" />
-        </Card>
+      {!isNew && !isLoading && !campaign && (
+        <Alert
+          type="warning"
+          showIcon
+          message="캠페인을 찾을 수 없습니다"
+          description="삭제되었거나 잘못된 주소입니다. 목록에서 다시 선택해주세요."
+        />
       )}
 
-      {campaigns.map((campaign, index) => (
-        <Card
-          key={campaign.id}
-          style={{ maxWidth: 640, marginBottom: 16 }}
-          title={
-            <Space>
-              {campaign.id}
-              {campaign.enabled ? (
-                <Tag color="green">노출 중</Tag>
-              ) : (
-                <Tag>꺼짐</Tag>
-              )}
-            </Space>
-          }
-          extra={
-            <Space>
-              <Button
-                size="small"
-                icon={<ArrowUpOutlined />}
-                title="우선순위 올리기"
-                disabled={index === 0 || moveMutation.isPending}
-                onClick={() =>
-                  moveMutation.mutate({ id: campaign.id, position: index - 1 })
-                }
-              />
-              <Button
-                size="small"
-                icon={<ArrowDownOutlined />}
-                title="우선순위 내리기"
-                disabled={
-                  index === campaigns.length - 1 || moveMutation.isPending
-                }
-                onClick={() =>
-                  moveMutation.mutate({ id: campaign.id, position: index + 1 })
-                }
-              />
-              <Popconfirm
-                title="캠페인을 삭제할까요?"
-                description="저장된 설정이 즉시 사라지고 클라이언트에 더 이상 내려가지 않습니다."
-                okText="삭제"
-                okButtonProps={{ danger: true }}
-                onConfirm={() => deleteMutation.mutate(campaign.id)}
-              >
-                <Button
-                  size="small"
-                  danger
-                  icon={<DeleteOutlined />}
-                  loading={deleteMutation.isPending}
-                />
-              </Popconfirm>
-            </Space>
-          }
-        >
-          <CampaignEditor campaign={campaign} />
-        </Card>
-      ))}
-
-      {creating && (
-        <Card
-          style={{ maxWidth: 640, marginBottom: 16 }}
-          title="새 캠페인"
-          extra={
-            <Button size="small" onClick={() => setCreating(false)}>
-              취소
-            </Button>
-          }
-        >
-          <CampaignEditor campaign={null} onSaved={() => setCreating(false)} />
+      {(isNew || campaign) && (
+        <Card>
+          <CampaignForm
+            key={campaign?.id ?? "new"}
+            campaign={campaign}
+            onCreated={(id) =>
+              navigate(`/marketing-in-app/${encodeURIComponent(id)}`, {
+                replace: true,
+              })
+            }
+          />
         </Card>
       )}
-    </>
+    </div>
   );
 }

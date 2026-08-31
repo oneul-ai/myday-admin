@@ -197,7 +197,7 @@ function CampaignForm({
         name="enabled"
         label="노출"
         valuePropName="checked"
-        extra="켜면 앱 실행 시 /awake 응답으로 내려갑니다. 여러 캠페인이 켜져 있으면 목록의 순서(우선순위)대로 함께 내려갑니다."
+        extra="켜면 앱 실행 시 /awake 응답으로 내려갑니다. 여러 캠페인이 켜져 있으면 목록의 순서(우선순위)대로 함께 내려갑니다. 동시에 켤 수 있는 캠페인은 최대 2개이며(종료된 캠페인 제외), 초과하면 저장이 거부됩니다."
       >
         <Switch />
       </Form.Item>

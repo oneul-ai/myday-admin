@@ -51,6 +51,7 @@ const { Title, Text, Paragraph } = Typography;
 const SCOPE_OPTIONS: { value: I18nScope; label: string }[] = [
   { value: "app", label: "App" },
   { value: "widget", label: "Widget" },
+  { value: "shortcuts", label: "Shortcuts (Siri 구문)" },
 ];
 
 const STATUS_TAG_COLOR: Record<I18nStatus, string> = {

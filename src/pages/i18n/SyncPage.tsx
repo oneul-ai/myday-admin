@@ -34,6 +34,7 @@ const { Dragger } = Upload;
 const SCOPE_OPTIONS: { value: I18nScope; label: string }[] = [
   { value: "app", label: "App" },
   { value: "widget", label: "Widget" },
+  { value: "shortcuts", label: "Shortcuts (Siri 구문)" },
 ];
 
 function isXcstringsFile(file: File): boolean {

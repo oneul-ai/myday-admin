@@ -1,6 +1,6 @@
 import client from "./client";
 
-export type I18nScope = "app" | "widget";
+export type I18nScope = "app" | "widget" | "shortcuts";
 export type I18nStatus = "draft" | "review" | "published";
 
 export interface I18nTranslation {

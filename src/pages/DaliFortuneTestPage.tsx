@@ -20,6 +20,7 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { type Dayjs } from "dayjs";
 import {
+  type FortunePillar,
   type FortuneTestResponse,
   testFortune,
 } from "../api/dali";
@@ -54,6 +55,18 @@ function scoreColor(score: number) {
   if (score >= 50) return "#1677ff";
   if (score >= 40) return "#faad14";
   return "#ff4d4f";
+}
+
+const ELEMENT_LABELS: Record<string, { label: string; color: string }> = {
+  wood: { label: "목(木)", color: "#52c41a" },
+  fire: { label: "화(火)", color: "#ff4d4f" },
+  earth: { label: "토(土)", color: "#faad14" },
+  metal: { label: "금(金)", color: "#8c8c8c" },
+  water: { label: "수(水)", color: "#1677ff" },
+};
+
+function pillarText(pillar: FortunePillar | null) {
+  return pillar ? `${pillar.name}(${pillar.hanja})` : "-";
 }
 
 export default function DaliFortuneTestPage() {
@@ -249,6 +262,55 @@ export default function DaliFortuneTestPage() {
               </Descriptions.Item>
             </Descriptions>
           )}
+        </Card>
+      )}
+
+      {result?.basis && (
+        <Card
+          title="사주 근거 (유저에게 보이는 검증 가능한 사실)"
+          size="small"
+          style={{ marginBottom: 16 }}
+        >
+          <Descriptions column={4} size="small">
+            <Descriptions.Item label="년주">
+              {pillarText(result.basis.natal_chart.year_pillar)}
+            </Descriptions.Item>
+            <Descriptions.Item label="월주">
+              {pillarText(result.basis.natal_chart.month_pillar)}
+            </Descriptions.Item>
+            <Descriptions.Item label="일주">
+              {pillarText(result.basis.natal_chart.day_pillar)}
+            </Descriptions.Item>
+            <Descriptions.Item label="시주">
+              {pillarText(result.basis.natal_chart.hour_pillar)}
+            </Descriptions.Item>
+            <Descriptions.Item label="일간">
+              {result.basis.natal_chart.day_master.name}(
+              {result.basis.natal_chart.day_master.hanja}) ·{" "}
+              {result.basis.natal_chart.day_master.element}
+            </Descriptions.Item>
+            <Descriptions.Item label="띠">
+              {result.basis.natal_chart.zodiac_animal}띠
+            </Descriptions.Item>
+            <Descriptions.Item label="오늘의 일진" span={2}>
+              {result.basis.today.name}({result.basis.today.hanja}) · 60갑자{" "}
+              {result.basis.today.cycle_index}번째
+            </Descriptions.Item>
+          </Descriptions>
+          <Row gutter={[16, 4]} style={{ marginTop: 8 }}>
+            {Object.entries(result.basis.five_elements).map(([key, percent]) => (
+              <Col key={key} flex="1 1 120px">
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {ELEMENT_LABELS[key]?.label ?? key}
+                </Typography.Text>
+                <Progress
+                  percent={percent}
+                  strokeColor={ELEMENT_LABELS[key]?.color}
+                  size="small"
+                />
+              </Col>
+            ))}
+          </Row>
         </Card>
       )}
 

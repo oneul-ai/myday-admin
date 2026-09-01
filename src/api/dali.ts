@@ -211,8 +211,28 @@ export interface FortuneResult {
   compatibility?: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
 }
 
+export interface FortunePillar {
+  name: string; // 한글 간지, 예: 기사
+  hanja: string; // 예: 己巳
+}
+
+// 유저에게 보여주는 운세 근거 — 검증 가능한 사실만 (원국·오늘 일진·오행 분포)
+export interface FortuneBasis {
+  natal_chart: {
+    year_pillar: FortunePillar;
+    month_pillar: FortunePillar;
+    day_pillar: FortunePillar;
+    hour_pillar: FortunePillar | null; // 생시 미상이면 null
+    day_master: { name: string; hanja: string; element: string };
+    zodiac_animal: string;
+  };
+  today: { name: string; hanja: string; cycle_index: number };
+  five_elements: Record<"wood" | "fire" | "earth" | "metal" | "water", number>;
+}
+
 export interface FortuneTestResponse {
   engine_input: Record<string, unknown>;
+  basis?: FortuneBasis;
   fortune: FortuneResult | null;
   model_id: string | null;
   latency_ms: number;

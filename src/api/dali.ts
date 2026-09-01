@@ -204,6 +204,11 @@ export interface FortuneResult {
     time: string | null;
     food: string | null;
   };
+  // 이전 캐시 응답에는 없을 수 있어 전부 optional (서버 신규 필드)
+  mission?: { title: string; reason: string };
+  dali_comment?: string; // 달이의 한 마디
+  charm?: string; // 오늘의 주문 (부적 문구)
+  compatibility?: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
 }
 
 export interface FortuneTestResponse {

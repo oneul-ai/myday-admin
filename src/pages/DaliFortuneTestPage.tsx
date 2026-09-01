@@ -162,6 +162,36 @@ export default function DaliFortuneTestPage() {
           style={{ marginBottom: 16 }}
         >
           <Typography.Paragraph>{fortune.summary}</Typography.Paragraph>
+          {fortune.dali_comment && (
+            <Typography.Paragraph>
+              <Tag color="purple">달이의 한 마디</Tag>
+              {fortune.dali_comment}
+            </Typography.Paragraph>
+          )}
+          {fortune.charm && (
+            <Typography.Paragraph>
+              <Tag color="gold">오늘의 주문</Tag>
+              <Typography.Text strong>{fortune.charm}</Typography.Text>
+            </Typography.Paragraph>
+          )}
+          {fortune.mission && (
+            <Card
+              size="small"
+              style={{ marginBottom: 16, background: "#f6ffed" }}
+            >
+              <Space direction="vertical" size={2}>
+                <Space>
+                  <Tag color="green">오늘의 미션</Tag>
+                  <Typography.Text strong>
+                    {fortune.mission.title}
+                  </Typography.Text>
+                </Space>
+                <Typography.Text type="secondary">
+                  {fortune.mission.reason}
+                </Typography.Text>
+              </Space>
+            </Card>
+          )}
           <Row gutter={[16, 16]}>
             {Object.entries(fortune.categories).map(([key, category]) => (
               <Col key={key} xs={24} sm={12} md={8}>
@@ -200,6 +230,25 @@ export default function DaliFortuneTestPage() {
               {fortune.lucky.food ?? "-"}
             </Descriptions.Item>
           </Descriptions>
+          {fortune.compatibility && (
+            <Descriptions
+              title="오늘의 띠 궁합"
+              column={2}
+              size="small"
+              style={{ marginTop: 16 }}
+            >
+              <Descriptions.Item label="잘 맞는 띠">
+                {fortune.compatibility.good.length > 0
+                  ? fortune.compatibility.good.join(", ")
+                  : "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="조심할 띠">
+                {fortune.compatibility.caution.length > 0
+                  ? fortune.compatibility.caution.join(", ")
+                  : "-"}
+              </Descriptions.Item>
+            </Descriptions>
+          )}
         </Card>
       )}
 

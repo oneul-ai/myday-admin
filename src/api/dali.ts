@@ -173,3 +173,50 @@ export async function recommendQuote(body: DaliRecommendQuoteRequest) {
   );
   return data;
 }
+
+// ── 사주 기반 오늘의 운세 테스트 ──────────────────────────────────
+
+export interface FortuneTestRequest {
+  birth_date: string; // YYYY-MM-DD
+  birth_time?: string | null; // HH:MM, 생시 미상이면 null
+  gender: "male" | "female";
+  target_date?: string; // 기본: 오늘(KST)
+  language?: string; // 기본: ko
+  engine_only?: boolean; // true 면 LLM 없이 사주 엔진 입력만
+}
+
+export interface FortuneCategory {
+  score: number;
+  message: string;
+}
+
+export interface FortuneResult {
+  headline: string;
+  summary: string;
+  categories: Record<
+    "overall" | "work_study" | "relationship" | "money" | "wellbeing",
+    FortuneCategory
+  >;
+  lucky: {
+    color: string | null;
+    number: number | null;
+    direction: string | null;
+    time: string | null;
+    food: string | null;
+  };
+}
+
+export interface FortuneTestResponse {
+  engine_input: Record<string, unknown>;
+  fortune: FortuneResult | null;
+  model_id: string | null;
+  latency_ms: number;
+}
+
+export async function testFortune(body: FortuneTestRequest) {
+  const { data } = await client.post<FortuneTestResponse>(
+    "/dali/fortune-test",
+    body,
+  );
+  return data;
+}

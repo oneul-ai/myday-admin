@@ -59,6 +59,7 @@ const baseMenuItems = [
       { key: "/dali/greeting-recommend", label: "체크인 인사말 추천" },
       { key: "/dali/quote-recommend", label: "오늘의 명언 추천" },
       { key: "/dali/task-recommendations", label: "온보딩 Task 추천" },
+      { key: "/dali/fortune-test", label: "오늘의 운세" },
     ],
   },
 ];

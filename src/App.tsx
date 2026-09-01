@@ -24,6 +24,7 @@ import MarketingInAppEditorPage from "./pages/marketingInApp/MarketingInAppEdito
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
 import DaliQuoteRecommendPage from "./pages/DaliQuoteRecommendPage";
+import DaliFortuneTestPage from "./pages/DaliFortuneTestPage";
 import TaskRecommendationsPage from "./pages/TaskRecommendationsPage";
 import I18nSyncPage from "./pages/i18n/SyncPage";
 import BlogPostsPage from "./pages/blog/BlogPostsPage";
@@ -148,6 +149,10 @@ export default function App() {
                   <Route
                     path="/dali/task-recommendations"
                     element={<TaskRecommendationsPage />}
+                  />
+                  <Route
+                    path="/dali/fortune-test"
+                    element={<DaliFortuneTestPage />}
                   />
                 </Route>
               </Routes>

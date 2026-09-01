@@ -44,6 +44,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 interface FormValues {
   birth_date: Dayjs;
   birth_time: Dayjs | null;
+  birth_calendar: "solar" | "lunar" | "lunar_leap";
   gender: "male" | "female";
   target_date: Dayjs | null;
   language: string;
@@ -87,6 +88,7 @@ export default function DaliFortuneTestPage() {
     runMutation.mutate({
       birth_date: values.birth_date.format("YYYY-MM-DD"),
       birth_time: values.birth_time ? values.birth_time.format("HH:mm") : null,
+      birth_calendar: values.birth_calendar,
       gender: values.gender,
       target_date: values.target_date
         ? values.target_date.format("YYYY-MM-DD")
@@ -119,6 +121,7 @@ export default function DaliFortuneTestPage() {
             language: "ko",
             engine_only: false,
             birth_time: null,
+            birth_calendar: "solar",
             target_date: null,
           }}
         >
@@ -128,6 +131,16 @@ export default function DaliFortuneTestPage() {
             rules={[{ required: true, message: "필수" }]}
           >
             <DatePicker placeholder="1990-03-05" />
+          </Form.Item>
+          <Form.Item name="birth_calendar" label="양/음력">
+            <Select
+              style={{ width: 130 }}
+              options={[
+                { value: "solar", label: "양력" },
+                { value: "lunar", label: "음력" },
+                { value: "lunar_leap", label: "음력 (윤달)" },
+              ]}
+            />
           </Form.Item>
           <Form.Item name="birth_time" label="생시" extra="모르면 비움">
             <TimePicker format="HH:mm" placeholder="14:30" />

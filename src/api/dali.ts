@@ -179,6 +179,7 @@ export async function recommendQuote(body: DaliRecommendQuoteRequest) {
 export interface FortuneTestRequest {
   birth_date: string; // YYYY-MM-DD
   birth_time?: string | null; // HH:MM, 생시 미상이면 null
+  birth_calendar?: "solar" | "lunar" | "lunar_leap"; // 기본 solar (음력이면 엔진이 양력 변환)
   gender: "male" | "female";
   target_date?: string; // 기본: 오늘(KST)
   language?: string; // 기본: ko

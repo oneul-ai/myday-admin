@@ -37,10 +37,21 @@ function fmt(v: string | null | undefined) {
   return v ? dayjs(v).format("YYYY-MM-DD HH:mm") : "-";
 }
 
+// 종료일이 시작일과 다른 멀티데이 이벤트는 종료 쪽에도 날짜를 붙인다.
+// 종일 이벤트의 Google end.date 는 exclusive 라 하루를 빼서 실제 마지막 날로 표시한다.
 function fmtEventTime(e: FetchTestEvent) {
-  if (e.is_all_day) return `${e.start ?? ""} (All Day)`;
   if (!e.start) return "-";
-  return `${dayjs(e.start).format("MM-DD HH:mm")} - ${e.end ? dayjs(e.end).format("HH:mm") : ""}`;
+  if (e.is_all_day) {
+    const start = dayjs(e.start);
+    const lastDay = e.end ? dayjs(e.end).subtract(1, "day") : start;
+    const range = lastDay.isAfter(start, "day") ? `${start.format("MM-DD")} ~ ${lastDay.format("MM-DD")}` : start.format("MM-DD");
+    return `${range} (All Day)`;
+  }
+  const start = dayjs(e.start);
+  if (!e.end) return `${start.format("MM-DD HH:mm")} -`;
+  const end = dayjs(e.end);
+  const endFmt = end.isSame(start, "day") ? "HH:mm" : "MM-DD HH:mm";
+  return `${start.format("MM-DD HH:mm")} - ${end.format(endFmt)}`;
 }
 
 /**
@@ -271,7 +282,7 @@ export default function GoogleCalendarFetchTestModal({
             size="small"
             pagination={{ pageSize: 20, hideOnSinglePage: true }}
             columns={[
-              { title: "Time", key: "time", width: 150, render: (_: unknown, e) => fmtEventTime(e) },
+              { title: "Time", key: "time", width: 190, render: (_: unknown, e) => fmtEventTime(e) },
               {
                 title: "Title",
                 dataIndex: "summary",

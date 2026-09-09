@@ -144,11 +144,16 @@ function FortuneCardView({
           </Descriptions.Item>
         ))}
       </Descriptions>
-      <Descriptions title="오늘의 띠 궁합" column={2} size="small" style={{ marginTop: 16 }}>
-        <Descriptions.Item label="잘 맞는 띠">
+      <Descriptions
+        title="오늘 잘 맞는 띠 (내 띠 + 오늘 일진 + 상대 띠 3자 관계)"
+        column={2}
+        size="small"
+        style={{ marginTop: 16 }}
+      >
+        <Descriptions.Item label="오늘 나와 잘 맞는 띠">
           {fortune.compatibility.good.length > 0 ? fortune.compatibility.good.join(", ") : "-"}
         </Descriptions.Item>
-        <Descriptions.Item label="조심할 띠">
+        <Descriptions.Item label="오늘 조금 조심할 띠">
           {fortune.compatibility.caution.length > 0
             ? fortune.compatibility.caution.join(", ")
             : "-"}
@@ -206,7 +211,46 @@ function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
   );
 }
 
+// 엔진의 개인화 띠 궁합 — 내 띠·오늘 일진·상대 띠의 3자 관계 점수와 이유 (운영자 검산용).
+interface ZodiacPick {
+  animal: string;
+  score: number;
+  reason: string;
+}
+interface ZodiacDetail {
+  user_animal: string;
+  today_animal: string;
+  today_relation: { type: string; label: string; score: number };
+  good: ZodiacPick[];
+  caution: ZodiacPick[];
+}
+
+function readZodiac(engineInput: Record<string, unknown>): ZodiacDetail | null {
+  const z = engineInput.zodiac_compatibility as Partial<ZodiacDetail> | undefined;
+  if (!z || !z.today_relation || !Array.isArray(z.good)) return null;
+  return z as ZodiacDetail;
+}
+
+function ZodiacView({ zodiac }: { zodiac: ZodiacDetail }) {
+  const picks = (items: ZodiacPick[]) =>
+    items.length === 0
+      ? "-"
+      : items.map((p) => `${p.animal} (${p.score >= 0 ? "+" : ""}${p.score}: ${p.reason})`).join(" · ");
+  return (
+    <Descriptions column={1} size="small">
+      <Descriptions.Item label="내 띠 / 오늘">
+        {zodiac.user_animal}띠 · 오늘 {zodiac.today_animal}일 · 관계 {zodiac.today_relation.label} (
+        {zodiac.today_relation.score >= 0 ? "+" : ""}
+        {zodiac.today_relation.score})
+      </Descriptions.Item>
+      <Descriptions.Item label="잘 맞는 띠">{picks(zodiac.good)}</Descriptions.Item>
+      <Descriptions.Item label="조심할 띠">{picks(zodiac.caution)}</Descriptions.Item>
+    </Descriptions>
+  );
+}
+
 function RunMaterial({ run }: { run: FortuneTestRun }) {
+  const zodiac = readZodiac(run.engine_input);
   return (
     <Card
       size="small"
@@ -222,6 +266,14 @@ function RunMaterial({ run }: { run: FortuneTestRun }) {
         <BriefView brief={run.brief} />
       ) : (
         <Typography.Text type="secondary">브리프 없음 (엔진 입력만 실행)</Typography.Text>
+      )}
+      {zodiac && (
+        <div style={{ marginTop: 8 }}>
+          <Typography.Text strong style={{ fontSize: 12 }}>
+            띠 궁합 계산 (엔진)
+          </Typography.Text>
+          <ZodiacView zodiac={zodiac} />
+        </div>
       )}
       <Descriptions column={1} size="small" style={{ marginTop: 8 }}>
         <Descriptions.Item label="recent_fortunes">

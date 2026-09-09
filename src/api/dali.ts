@@ -177,8 +177,9 @@ export async function recommendQuote(body: DaliRecommendQuoteRequest) {
 // ── 사주 기반 오늘의 운세 테스트 ──────────────────────────────────
 
 export interface FortuneProvidersResponse {
-  model_id: string; // 에디터(2단계) 모델
-  brief_model_id: string; // 브리프(1단계) 모델
+  model_id: string; // 에디터(2단계) 기본 모델
+  brief_model_id: string; // 브리프(1단계) 기본 모델
+  models: DaliModel[]; // 어드민에서 고를 수 있는 모델 (sol / luna)
   default_system_prompt: string; // 에디터 프롬프트 (기획 원문 + 형식 부록)
   default_brief_system_prompt: string; // 브리프 프롬프트
   response_schema: Record<string, unknown>;
@@ -247,6 +248,8 @@ export async function getFortuneContext(uid: string, targetDate?: string) {
 }
 
 export interface FortuneTestRequest {
+  model_id?: string; // 에디터 모델 오버라이드 (sol | luna). 없으면 서버 기본
+  brief_model_id?: string; // 브리프 모델 오버라이드 (sol | luna). 없으면 서버 기본
   user_uid?: string; // 지정하면 생년월일·성별이 비면 프로필에서, user_context 가 비면 유저 데이터로 채움
   user_context?: FortuneUserContext; // 편집한 컨텍스트 (체인 실행 시 첫날 것 고정)
   birth_date?: string; // YYYY-MM-DD (user_uid 가 있으면 생략 가능)

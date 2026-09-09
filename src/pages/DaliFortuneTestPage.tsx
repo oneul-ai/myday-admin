@@ -510,6 +510,12 @@ export default function DaliFortuneTestPage() {
   });
   const defaultEditorPrompt = providers?.default_system_prompt ?? "";
   const defaultBriefPrompt = providers?.default_brief_system_prompt ?? "";
+  // 모델 선택 — null 이면 서버 기본 (에디터 sol, 브리프 luna).
+  const [editorModelOverride, setEditorModelOverride] = useState<string | null>(null);
+  const [briefModelOverride, setBriefModelOverride] = useState<string | null>(null);
+  const modelOptions = (providers?.models ?? []).map((m) => ({ value: m.id, label: m.label }));
+  const editorModel = editorModelOverride ?? providers?.model_id ?? "";
+  const briefModel = briefModelOverride ?? providers?.brief_model_id ?? "";
 
   const runMutation = useMutation({
     mutationFn: testFortune,
@@ -532,6 +538,8 @@ export default function DaliFortuneTestPage() {
       return;
     }
     runMutation.mutate({
+      model_id: editorModelOverride ?? undefined,
+      brief_model_id: briefModelOverride ?? undefined,
       user_uid: selectedUser?.uid,
       // 편집하지 않았고 유저가 있으면 서버가 같은 컨텍스트를 다시 만들므로 보내지 않아도 되지만,
       // 표시된 것과 실행된 것을 일치시키기 위해 항상 화면의 값을 보낸다.
@@ -683,6 +691,24 @@ export default function DaliFortuneTestPage() {
           <Form.Item name="language" label="언어">
             <Select style={{ width: 180 }} options={LANGUAGES} />
           </Form.Item>
+          <Form.Item label="에디터 모델" extra="2단계 콘텐츠">
+            <Select
+              style={{ width: 150 }}
+              options={modelOptions}
+              value={editorModel || undefined}
+              loading={providersLoading}
+              onChange={(v) => setEditorModelOverride(v === providers?.model_id ? null : v)}
+            />
+          </Form.Item>
+          <Form.Item label="브리프 모델" extra="1단계 사주 → 연출 방향">
+            <Select
+              style={{ width: 150 }}
+              options={modelOptions}
+              value={briefModel || undefined}
+              loading={providersLoading}
+              onChange={(v) => setBriefModelOverride(v === providers?.brief_model_id ? null : v)}
+            />
+          </Form.Item>
           <Form.Item name="chain_days" label="연속 일수" extra="1~7일, 하루씩 이어 생성">
             <InputNumber min={1} max={7} style={{ width: 70 }} />
           </Form.Item>
@@ -777,7 +803,7 @@ export default function DaliFortuneTestPage() {
               }
               extra={
                 <Typography.Text type="secondary">
-                  {result?.model_id} · {run.latency_ms}ms
+                  {result?.brief_model_id ?? "…"} → {result?.model_id} · {run.latency_ms}ms
                 </Typography.Text>
               }
             />

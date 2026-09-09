@@ -204,12 +204,23 @@ export interface FortuneResult {
     direction: string | null;
     time: string | null;
     food: string | null;
+    item?: string | null; // 럭키 아이템 (서버 신규 필드)
   };
   // 이전 캐시 응답에는 없을 수 있어 전부 optional (서버 신규 필드)
   mission?: { title: string; reason: string };
   dali_comment?: string; // 달이의 한 마디
   charm?: string; // 오늘의 주문 (부적 문구)
   compatibility?: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
+  day_card?: { title: string; image: string }; // 오늘의 일진 카드 (이름·그림 묘사)
+  keywords?: string[]; // 오늘의 키워드 3개 (해시태그용)
+}
+
+// 글쓰기 스타일 카드 — 날짜(60갑자 순번)·일간으로 결정되는 비유 렌즈·헤드라인
+// 형식·스포트라이트 카테고리. 운세가 매일 같은 패턴으로 나오지 않게 하는 입력.
+export interface FortuneWritingStyle {
+  lens: string;
+  headline_form: string;
+  spotlight_category: "work_study" | "relationship" | "money" | "wellbeing";
 }
 
 export interface FortunePillar {
@@ -234,6 +245,7 @@ export interface FortuneBasis {
 export interface FortuneTestResponse {
   engine_input: Record<string, unknown>;
   basis?: FortuneBasis;
+  writing_style?: FortuneWritingStyle; // engine_only 여도 내려온다 (구버전 API 는 없음)
   fortune: FortuneResult | null;
   model_id: string | null;
   latency_ms: number;

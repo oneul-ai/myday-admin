@@ -25,6 +25,20 @@ import {
   testFortune,
 } from "../api/dali";
 
+// 엔진 입력 JSON 의 today.imagery — 일진 카드 재료 (구버전 API 는 없음).
+interface TodayImagery {
+  stem: string;
+  branch: string;
+  nayin: { name: string; hanja: string; element: string; image: string };
+}
+
+function readTodayImagery(
+  engineInput: Record<string, unknown>,
+): TodayImagery | null {
+  const today = engineInput.today as { imagery?: TodayImagery } | undefined;
+  return today?.imagery ?? null;
+}
+
 const LANGUAGES = [
   { value: "ko", label: "한국어 (ko)" },
   { value: "en", label: "영어 (en)" },
@@ -187,7 +201,37 @@ export default function DaliFortuneTestPage() {
           }
           style={{ marginBottom: 16 }}
         >
+          {fortune.keywords && fortune.keywords.length > 0 && (
+            <Space size={4} wrap style={{ marginBottom: 12 }}>
+              {fortune.keywords.map((keyword) => (
+                <Tag key={keyword} color="blue">
+                  #{keyword}
+                </Tag>
+              ))}
+            </Space>
+          )}
           <Typography.Paragraph>{fortune.summary}</Typography.Paragraph>
+          {fortune.day_card && (
+            <Card
+              size="small"
+              style={{ marginBottom: 16, background: "#f9f0ff" }}
+            >
+              <Space direction="vertical" size={2}>
+                <Space>
+                  <Tag color="magenta">오늘의 일진 카드</Tag>
+                  <Typography.Text strong>{fortune.day_card.title}</Typography.Text>
+                  {result?.basis && (
+                    <Typography.Text type="secondary">
+                      {result.basis.today.name}({result.basis.today.hanja})
+                    </Typography.Text>
+                  )}
+                </Space>
+                <Typography.Text type="secondary">
+                  {fortune.day_card.image}
+                </Typography.Text>
+              </Space>
+            </Card>
+          )}
           {fortune.dali_comment && (
             <Typography.Paragraph>
               <Tag color="purple">달이의 한 마디</Tag>
@@ -221,7 +265,15 @@ export default function DaliFortuneTestPage() {
           <Row gutter={[16, 16]}>
             {Object.entries(fortune.categories).map(([key, category]) => (
               <Col key={key} xs={24} sm={12} md={8}>
-                <Card size="small" title={CATEGORY_LABELS[key] ?? key}>
+                <Card
+                  size="small"
+                  title={CATEGORY_LABELS[key] ?? key}
+                  extra={
+                    result?.writing_style?.spotlight_category === key && (
+                      <Tag color="orange">스포트라이트</Tag>
+                    )
+                  }
+                >
                   <Progress
                     percent={category.score}
                     strokeColor={scoreColor(category.score)}
@@ -236,7 +288,7 @@ export default function DaliFortuneTestPage() {
           </Row>
           <Descriptions
             title="럭키 아이템"
-            column={5}
+            column={6}
             size="small"
             style={{ marginTop: 16 }}
           >
@@ -254,6 +306,9 @@ export default function DaliFortuneTestPage() {
             </Descriptions.Item>
             <Descriptions.Item label="음식">
               {fortune.lucky.food ?? "-"}
+            </Descriptions.Item>
+            <Descriptions.Item label="아이템">
+              {fortune.lucky.item ?? "-"}
             </Descriptions.Item>
           </Descriptions>
           {fortune.compatibility && (
@@ -275,6 +330,42 @@ export default function DaliFortuneTestPage() {
               </Descriptions.Item>
             </Descriptions>
           )}
+        </Card>
+      )}
+
+      {result?.writing_style && (
+        <Card
+          title="글쓰기 스타일 카드 (날짜·일간으로 결정 — 매일 바뀌는 서술 방식)"
+          size="small"
+          style={{ marginBottom: 16 }}
+        >
+          <Descriptions column={1} size="small">
+            <Descriptions.Item label="비유 렌즈">
+              {result.writing_style.lens}
+            </Descriptions.Item>
+            <Descriptions.Item label="헤드라인 형식">
+              {result.writing_style.headline_form}
+            </Descriptions.Item>
+            <Descriptions.Item label="스포트라이트">
+              {CATEGORY_LABELS[result.writing_style.spotlight_category] ??
+                result.writing_style.spotlight_category}{" "}
+              <Typography.Text type="secondary">
+                (장면으로 서술하는 카테고리)
+              </Typography.Text>
+            </Descriptions.Item>
+            {(() => {
+              const imagery = readTodayImagery(result.engine_input);
+              return (
+                imagery && (
+                  <Descriptions.Item label="오늘의 물상">
+                    천간: {imagery.stem} · 지지: {imagery.branch} · 납음:{" "}
+                    {imagery.nayin.name}({imagery.nayin.hanja}) —{" "}
+                    {imagery.nayin.image}
+                  </Descriptions.Item>
+                )
+              );
+            })()}
+          </Descriptions>
         </Card>
       )}
 

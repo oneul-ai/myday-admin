@@ -39,6 +39,12 @@ import {
   testFortune,
 } from "../api/dali";
 
+// 운세 생성에 쓸 수 있는 모델 (서버 providers.models 와 동일). API 가 목록을 내려주기 전 폴백.
+const FORTUNE_FALLBACK_MODELS = [
+  { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
+  { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+];
+
 const LANGUAGES = [
   { value: "ko", label: "한국어 (ko)" },
   { value: "en", label: "영어 (en)" },
@@ -513,9 +519,12 @@ export default function DaliFortuneTestPage() {
   // 모델 선택 — null 이면 서버 기본 (에디터 sol, 브리프 luna).
   const [editorModelOverride, setEditorModelOverride] = useState<string | null>(null);
   const [briefModelOverride, setBriefModelOverride] = useState<string | null>(null);
-  const modelOptions = (providers?.models ?? []).map((m) => ({ value: m.id, label: m.label }));
-  const editorModel = editorModelOverride ?? providers?.model_id ?? "";
-  const briefModel = briefModelOverride ?? providers?.brief_model_id ?? "";
+  // 서버가 models 를 아직 안 주는(구버전 API) 경우에도 sol/luna 는 고를 수 있게 정적 폴백.
+  const modelOptions = (
+    providers?.models && providers.models.length > 0 ? providers.models : FORTUNE_FALLBACK_MODELS
+  ).map((m) => ({ value: m.id, label: m.label }));
+  const editorModel = editorModelOverride ?? providers?.model_id ?? "gpt-5.6-sol";
+  const briefModel = briefModelOverride ?? providers?.brief_model_id ?? "gpt-5.6-luna";
 
   const runMutation = useMutation({
     mutationFn: testFortune,
@@ -697,7 +706,7 @@ export default function DaliFortuneTestPage() {
               options={modelOptions}
               value={editorModel || undefined}
               loading={providersLoading}
-              onChange={(v) => setEditorModelOverride(v === providers?.model_id ? null : v)}
+              onChange={(v) => setEditorModelOverride(v === (providers?.model_id ?? "gpt-5.6-sol") ? null : v)}
             />
           </Form.Item>
           <Form.Item label="브리프 모델" extra="1단계 사주 → 연출 방향">
@@ -706,7 +715,7 @@ export default function DaliFortuneTestPage() {
               options={modelOptions}
               value={briefModel || undefined}
               loading={providersLoading}
-              onChange={(v) => setBriefModelOverride(v === providers?.brief_model_id ? null : v)}
+              onChange={(v) => setBriefModelOverride(v === (providers?.brief_model_id ?? "gpt-5.6-luna") ? null : v)}
             />
           </Form.Item>
           <Form.Item name="chain_days" label="연속 일수" extra="1~7일, 하루씩 이어 생성">

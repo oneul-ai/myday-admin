@@ -177,10 +177,12 @@ export async function recommendQuote(body: DaliRecommendQuoteRequest) {
 // ── 사주 기반 오늘의 운세 테스트 ──────────────────────────────────
 
 export interface FortuneProvidersResponse {
-  model_id: string;
-  default_system_prompt: string;
+  model_id: string; // 에디터(2단계) 모델
+  brief_model_id: string; // 브리프(1단계) 모델
+  default_system_prompt: string; // 에디터 프롬프트 (기획 원문 + 형식 부록)
+  default_brief_system_prompt: string; // 브리프 프롬프트
   response_schema: Record<string, unknown>;
-  headline_forms: string[]; // 날짜·일간으로 회전하는 헤드라인 형식 목록
+  brief_schema: Record<string, unknown>;
 }
 
 export async function getFortuneProviders() {
@@ -196,54 +198,64 @@ export interface FortuneTestRequest {
   target_date?: string; // 기본: 오늘(KST)
   language?: string; // 기본: ko
   engine_only?: boolean; // true 면 LLM 없이 사주 엔진 입력만
-  system_prompt?: string; // 기본 프롬프트 본문 대신 쓸 오버라이드 (언어 블록은 서버가 붙임)
+  system_prompt?: string; // 에디터(2단계) 프롬프트 오버라이드 (언어 블록은 서버가 붙임)
+  brief_system_prompt?: string; // 브리프(1단계) 프롬프트 오버라이드
   recent_fortunes?: FortuneHistoryEntry[]; // 첫날에 넘길 히스토리 (선택)
   chain_days?: number; // 1~7. 2 이상이면 하루씩 이어 생성하며 앞선 결과를 히스토리로 넘김
 }
 
 export interface FortuneCard {
-  topic: string; // 오늘 중요한 주제 (일/돈/사람/대화/휴식 … 날마다 다름)
+  name: string; // 능력치 이름 — 고정 카테고리 없이 날마다 작명 (결정력, 지갑 방어력 …)
   score: number; // 0~100
-  message: string; // 1~2문장, 오늘의 장면 포함
+  message: string; // 1~2문장, 오늘 일어날 법한 장면 포함
 }
 
-export interface FortuneLuckyItem {
-  kind: string; // 물건/음식/장소/시간/행동/단어/음악 … 짧은 라벨
+export interface FortuneBait {
+  kind: string; // 색/시간/장소/음식/물건/단어/행동 … 짧은 라벨
   value: string;
 }
 
-// 운세 payload — 2026-09 개편 후 형태. 개편 전 캐시(categories/mission/lucky)는
-// 이 페이지(어드민 테스트, 항상 새로 생성)에서는 오지 않는다.
+// 1단계(브리프) 출력 — 사주 엔진 데이터를 사주 용어 없이 번역한 오늘의 크리에이티브 브리프.
+// 에디터(2단계)는 원시 사주 데이터 없이 이것만 보고 쓴다.
+export interface FortuneBrief {
+  core_theme: string;
+  sub_theme: string;
+  tension: string;
+  permission: string;
+  playful_angle: string;
+  today_theme: string[];
+  tone: Record<"opportunity" | "caution" | "social" | "focus", number>; // 0~1
+  time: Record<"good" | "caution" | "rest", string>;
+  motifs: string[];
+  scene_pool: string[];
+  colors: string[];
+}
+
+// 운세 payload — 2026-09 2단계 개편 후 형태. 개편 전 캐시는 이 페이지(어드민 테스트,
+// 항상 새로 생성)에서는 오지 않는다.
 export interface FortuneResult {
-  character: string; // 오늘의 캐릭터 (예: 오늘의 협상가)
   headline: string;
-  cards: FortuneCard[]; // 3~5개
-  spotlight: { topic: string; line: string }; // cards 중 오늘 가장 특징적인 주제
+  cards: FortuneCard[]; // 4개
   quest: { title: string; reason: string }; // 오늘의 퀘스트 (title 은 그대로 할 일 제목)
-  dali_comment: string; // 달이의 한마디 (반말, 가장 자유로운 영역)
-  lucky_items: FortuneLuckyItem[]; // 3~5개
-  charm: string; // 오늘의 주문 (부적 문구)
+  dali_comment: string; // 달이의 한마디
+  charm: string; // 오늘의 주문 (3~10글자)
+  baits: FortuneBait[]; // 오늘의 떡밥 3~5개
   compatibility: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
+  brief?: FortuneBrief; // 생성에 쓰인 브리프 (payload 에 함께 저장)
 }
 
-// 글쓰기 스타일 카드 — 날짜(60갑자 순번)·일간으로 결정되는 헤드라인 형식.
-// 히스토리가 없는 첫날에도 헤드라인이 매일 다른 모양이 되게 하는 입력.
-export interface FortuneWritingStyle {
-  headline_form: string;
-}
-
-// 최근 운세 요약 — LLM 에 recent_fortunes 로 넘겨 반복을 피하고 연속성을 준다.
+// 최근 운세 요약 — LLM 에 recent_fortunes 로 넘겨 반복을 피한다.
 // 실서비스는 유저의 daily_fortunes 캐시 14일치에서 자동 수집한다.
 export interface FortuneHistoryEntry {
   date: string;
-  character: string | null;
   headline: string | null;
-  spotlight: string | null;
-  spotlight_line?: string | null;
-  card_topics: string[];
+  core_theme?: string | null;
+  playful_angle?: string | null;
+  card_names: string[];
+  card_messages?: string[];
   quest: string | null;
   dali_comment?: string | null;
-  lucky_items: string[];
+  baits: string[];
   charm: string | null;
 }
 
@@ -270,22 +282,25 @@ export interface FortuneTestRun {
   target_date: string;
   engine_input: Record<string, unknown>;
   basis: FortuneBasis;
-  writing_style: FortuneWritingStyle;
   recent_fortunes: FortuneHistoryEntry[]; // 그날 LLM 에 넘긴 히스토리
+  brief: FortuneBrief | null; // 1단계 결과
+  brief_latency_ms: number;
   fortune: FortuneResult | null;
-  latency_ms: number;
+  latency_ms: number; // 브리프 + 에디터 합산
 }
 
 export interface FortuneTestResponse {
   // 최상위 필드는 첫날(runs[0]) 결과. runs 에 chain_days 일치 전체가 날짜순으로 온다.
   engine_input: Record<string, unknown>;
   basis?: FortuneBasis;
-  writing_style?: FortuneWritingStyle;
+  brief?: FortuneBrief | null;
   fortune: FortuneResult | null;
   model_id: string | null;
+  brief_model_id?: string | null;
   latency_ms: number;
-  runs?: FortuneTestRun[]; // 구버전 API 는 없음
-  system_prompt_sent?: string; // 실제 전송된 시스템 프롬프트 (언어 블록 포함)
+  runs?: FortuneTestRun[];
+  system_prompt_sent?: string; // 실제 전송된 에디터 프롬프트 (언어 블록 포함)
+  brief_system_prompt_sent?: string; // 실제 전송된 브리프 프롬프트
 }
 
 export async function testFortune(body: FortuneTestRequest) {

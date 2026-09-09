@@ -22,6 +22,7 @@ import {
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { type Dayjs } from "dayjs";
 import {
+  type FortuneBrief,
   type FortuneHistoryEntry,
   type FortunePillar,
   type FortuneResult,
@@ -69,31 +70,12 @@ function pillarText(pillar: FortunePillar | null) {
   return pillar ? `${pillar.name}(${pillar.hanja})` : "-";
 }
 
-// 엔진 입력 JSON 의 time_guide / today.imagery — 운영자가 LLM 재료를 검산하는 용도.
-interface EngineTimeWindow {
-  hours: string;
-  reasons: string[];
-}
-interface EngineMaterial {
-  time_guide: Record<"focus" | "caution" | "rest", EngineTimeWindow> | null;
-  imagery: {
-    stem: string;
-    branch: string;
-    nayin: { name: string; hanja: string; image: string };
-  } | null;
-}
-
-function readEngineMaterial(engineInput: Record<string, unknown>): EngineMaterial {
-  const timeGuide = engineInput.time_guide as EngineMaterial["time_guide"] | undefined;
-  const today = engineInput.today as { imagery?: EngineMaterial["imagery"] } | undefined;
-  return { time_guide: timeGuide ?? null, imagery: today?.imagery ?? null };
-}
-
-const TIME_GUIDE_KINDS = [
-  { key: "focus", label: "집중", color: "green" },
-  { key: "caution", label: "조심", color: "volcano" },
-  { key: "rest", label: "쉼", color: "cyan" },
-] as const;
+const TONE_LABELS: Record<keyof FortuneBrief["tone"], string> = {
+  opportunity: "기회",
+  caution: "조심",
+  social: "사람",
+  focus: "집중",
+};
 
 function FortuneCardView({
   fortune,
@@ -111,40 +93,22 @@ function FortuneCardView({
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             {title}
           </Typography.Text>
-          <Space>
-            <Tag color="magenta">{fortune.character}</Tag>
-            <Typography.Text strong style={{ fontSize: 16 }}>
-              {fortune.headline}
-            </Typography.Text>
-          </Space>
+          <Typography.Text strong style={{ fontSize: 18 }}>
+            {fortune.headline}
+          </Typography.Text>
         </Space>
       }
       extra={extra}
       style={{ marginBottom: 16 }}
     >
-      <Card size="small" style={{ marginBottom: 16, background: "#fff7e6" }}>
-        <Space>
-          <Tag color="orange">스포트라이트 · {fortune.spotlight.topic}</Tag>
-          <Typography.Text>{fortune.spotlight.line}</Typography.Text>
-        </Space>
-      </Card>
-
       <Row gutter={[16, 16]}>
-        {fortune.cards.map((card) => (
-          <Col key={card.topic} xs={24} sm={12} md={8}>
-            <Card
-              size="small"
-              title={card.topic}
-              extra={
-                card.topic === fortune.spotlight.topic && (
-                  <Tag color="orange">스포트라이트</Tag>
-                )
-              }
-            >
+        {fortune.cards.map((card, index) => (
+          <Col key={`${card.name}-${index}`} xs={24} sm={12}>
+            <Card size="small" title={card.name}>
               <Progress
                 percent={card.score}
                 strokeColor={scoreColor(card.score)}
-                format={(v) => `${v}점`}
+                format={(v) => `${v}`}
               />
               <Typography.Paragraph style={{ marginBottom: 0 }}>
                 {card.message}
@@ -173,10 +137,10 @@ function FortuneCardView({
         <Typography.Text strong>{fortune.charm}</Typography.Text>
       </Typography.Paragraph>
 
-      <Descriptions title="럭키 아이템" column={fortune.lucky_items.length} size="small">
-        {fortune.lucky_items.map((item, index) => (
-          <Descriptions.Item key={`${item.kind}-${index}`} label={item.kind}>
-            {item.value}
+      <Descriptions title="오늘의 떡밥" column={fortune.baits.length} size="small">
+        {fortune.baits.map((bait, index) => (
+          <Descriptions.Item key={`${bait.kind}-${index}`} label={bait.kind}>
+            {bait.value}
           </Descriptions.Item>
         ))}
       </Descriptions>
@@ -194,6 +158,36 @@ function FortuneCardView({
   );
 }
 
+function BriefView({ brief }: { brief: FortuneBrief }) {
+  return (
+    <Descriptions column={1} size="small">
+      <Descriptions.Item label="핵심 / 보조 테마">
+        {brief.core_theme} · {brief.sub_theme}
+      </Descriptions.Item>
+      <Descriptions.Item label="긴장">{brief.tension}</Descriptions.Item>
+      <Descriptions.Item label="허락">{brief.permission}</Descriptions.Item>
+      <Descriptions.Item label="장난스러운 각도">{brief.playful_angle}</Descriptions.Item>
+      <Descriptions.Item label="오늘의 성격">{brief.today_theme.join(" / ")}</Descriptions.Item>
+      <Descriptions.Item label="톤">
+        <Space wrap>
+          {(Object.keys(TONE_LABELS) as (keyof FortuneBrief["tone"])[]).map((key) => (
+            <span key={key}>
+              {TONE_LABELS[key]} {Math.round(brief.tone[key] * 100)}
+            </span>
+          ))}
+        </Space>
+      </Descriptions.Item>
+      <Descriptions.Item label="시간">
+        좋음 {brief.time.good} · 조심 {brief.time.caution} · 쉼 {brief.time.rest}
+      </Descriptions.Item>
+      <Descriptions.Item label="모티프 / 장면 풀 / 색">
+        {brief.motifs.join(", ") || "-"} / {brief.scene_pool.join(", ") || "-"} /{" "}
+        {brief.colors.join(", ") || "-"}
+      </Descriptions.Item>
+    </Descriptions>
+  );
+}
+
 function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
   if (entries.length === 0) {
     return <Typography.Text type="secondary">히스토리 없음 (첫날)</Typography.Text>;
@@ -203,9 +197,9 @@ function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
       {entries.map((entry) => (
         <Typography.Text key={entry.date} style={{ fontSize: 12 }}>
           <Typography.Text type="secondary">{entry.date}</Typography.Text>{" "}
-          {entry.character ?? "-"} · {entry.headline ?? "-"} · 스포트라이트{" "}
-          {entry.spotlight ?? "-"} · 퀘스트 {entry.quest ?? "-"} · 럭키{" "}
-          {entry.lucky_items.join(", ") || "-"}
+          {entry.headline ?? "-"} · 테마 {entry.core_theme ?? "-"} · 카드{" "}
+          {entry.card_names.join(", ") || "-"} · 퀘스트 {entry.quest ?? "-"} · 떡밥{" "}
+          {entry.baits.join(", ") || "-"}
         </Typography.Text>
       ))}
     </Space>
@@ -213,60 +207,105 @@ function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
 }
 
 function RunMaterial({ run }: { run: FortuneTestRun }) {
-  const material = readEngineMaterial(run.engine_input);
   return (
     <Card
       size="small"
-      title={`${run.target_date} — LLM 재료 (히스토리 · 헤드라인 형식 · 시간 흐름 · 물상)`}
+      title={`${run.target_date} — 1단계 브리프 (사주 → 연출 방향) · 히스토리`}
+      extra={
+        run.brief && (
+          <Typography.Text type="secondary">브리프 {run.brief_latency_ms}ms</Typography.Text>
+        )
+      }
       style={{ marginBottom: 16 }}
     >
-      <Descriptions column={1} size="small">
+      {run.brief ? (
+        <BriefView brief={run.brief} />
+      ) : (
+        <Typography.Text type="secondary">브리프 없음 (엔진 입력만 실행)</Typography.Text>
+      )}
+      <Descriptions column={1} size="small" style={{ marginTop: 8 }}>
         <Descriptions.Item label="recent_fortunes">
           <HistoryList entries={run.recent_fortunes} />
         </Descriptions.Item>
-        <Descriptions.Item label="헤드라인 형식">
-          {run.writing_style.headline_form}
-        </Descriptions.Item>
-        {material.time_guide && (
-          <Descriptions.Item label="시간 흐름">
-            <Space wrap>
-              {TIME_GUIDE_KINDS.map(({ key, label, color }) => (
-                <span key={key}>
-                  <Tag color={color}>{label}</Tag>
-                  {material.time_guide?.[key].hours}{" "}
-                  <Typography.Text type="secondary">
-                    ({material.time_guide?.[key].reasons.join(", ")})
-                  </Typography.Text>
-                </span>
-              ))}
-            </Space>
-          </Descriptions.Item>
-        )}
-        {material.imagery && (
-          <Descriptions.Item label="오늘의 물상">
-            천간: {material.imagery.stem} · 지지: {material.imagery.branch} · 납음:{" "}
-            {material.imagery.nayin.name}({material.imagery.nayin.hanja}) —{" "}
-            {material.imagery.nayin.image}
-          </Descriptions.Item>
-        )}
       </Descriptions>
     </Card>
+  );
+}
+
+function PromptEditor({
+  title,
+  hint,
+  defaultValue,
+  override,
+  onChange,
+  loading,
+}: {
+  title: string;
+  hint: string;
+  defaultValue: string;
+  override: string | null;
+  onChange: (value: string | null) => void;
+  loading: boolean;
+}) {
+  const modified = override !== null && override !== defaultValue;
+  return (
+    <Collapse
+      style={{ marginBottom: 16 }}
+      items={[
+        {
+          key: "prompt",
+          label: (
+            <Space>
+              {title}
+              {modified ? (
+                <Tag color="orange">수정됨 — 이 실행에만 적용</Tag>
+              ) : (
+                <Tag>서버 기본값</Tag>
+              )}
+            </Space>
+          ),
+          extra: modified && (
+            <Button
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(null);
+              }}
+            >
+              기본값으로 되돌리기
+            </Button>
+          ),
+          children: (
+            <Space direction="vertical" style={{ width: "100%" }} size={8}>
+              <Typography.Text type="secondary">{hint}</Typography.Text>
+              <Input.TextArea
+                value={override ?? defaultValue}
+                disabled={loading}
+                onChange={(e) => onChange(e.target.value)}
+                autoSize={{ minRows: 12, maxRows: 40 }}
+                style={{ fontFamily: "monospace", fontSize: 12 }}
+              />
+            </Space>
+          ),
+        },
+      ]}
+    />
   );
 }
 
 export default function DaliFortuneTestPage() {
   const [form] = Form.useForm<FormValues>();
   const [result, setResult] = useState<FortuneTestResponse | null>(null);
-  // null 이면 서버 기본 프롬프트를 그대로 쓴다 (요청에 system_prompt 를 싣지 않음).
-  const [systemPromptOverride, setSystemPromptOverride] = useState<string | null>(null);
+  // null 이면 서버 기본 프롬프트를 그대로 쓴다 (요청에 오버라이드를 싣지 않음).
+  const [editorPromptOverride, setEditorPromptOverride] = useState<string | null>(null);
+  const [briefPromptOverride, setBriefPromptOverride] = useState<string | null>(null);
 
   const { data: providers, isLoading: providersLoading } = useQuery({
     queryKey: ["dali-fortune-providers"],
     queryFn: getFortuneProviders,
   });
-  const defaultPrompt = providers?.default_system_prompt ?? "";
-  const systemPrompt = systemPromptOverride ?? defaultPrompt;
-  const promptModified = systemPromptOverride !== null && systemPromptOverride !== defaultPrompt;
+  const defaultEditorPrompt = providers?.default_system_prompt ?? "";
+  const defaultBriefPrompt = providers?.default_brief_system_prompt ?? "";
 
   const runMutation = useMutation({
     mutationFn: testFortune,
@@ -279,6 +318,10 @@ export default function DaliFortuneTestPage() {
   });
 
   const handleRun = (values: FormValues) => {
+    const editorModified =
+      editorPromptOverride !== null && editorPromptOverride !== defaultEditorPrompt;
+    const briefModified =
+      briefPromptOverride !== null && briefPromptOverride !== defaultBriefPrompt;
     runMutation.mutate({
       birth_date: values.birth_date.format("YYYY-MM-DD"),
       birth_time: values.birth_time ? values.birth_time.format("HH:mm") : null,
@@ -290,7 +333,8 @@ export default function DaliFortuneTestPage() {
       language: values.language,
       engine_only: values.engine_only,
       chain_days: values.chain_days,
-      system_prompt: promptModified ? systemPrompt : undefined,
+      system_prompt: editorModified ? editorPromptOverride! : undefined,
+      brief_system_prompt: briefModified ? briefPromptOverride! : undefined,
     });
   };
 
@@ -303,8 +347,9 @@ export default function DaliFortuneTestPage() {
             target_date: "",
             engine_input: result.engine_input,
             basis: result.basis!,
-            writing_style: result.writing_style ?? { headline_form: "" },
             recent_fortunes: [],
+            brief: result.brief ?? null,
+            brief_latency_ms: 0,
             fortune: result.fortune,
             latency_ms: result.latency_ms,
           },
@@ -318,11 +363,12 @@ export default function DaliFortuneTestPage() {
         오늘의 운세 테스트
       </Typography.Title>
       <Typography.Paragraph type="secondary">
-        생년월일·생시·성별로 사주 엔진 입력을 계산하고, 실서비스와 같은 모델
-        (gpt-5.6-sol)·프롬프트로 운세를 생성합니다. 유저 계정 없이 동작하며
-        캐시를 남기지 않습니다. 연속 일수를 2 이상으로 두면 하루씩 이어
-        생성하면서 앞선 결과를 히스토리(recent_fortunes)로 넘겨, 실서비스처럼
-        반복 방지·연속성이 작동하는지 볼 수 있습니다.
+        생년월일·생시·성별로 사주 엔진 입력을 계산한 뒤 2단계로 생성합니다. 1단계
+        브리프({providers?.brief_model_id ?? "…"})가 사주 데이터를 사주 용어 없는 연출
+        방향으로 번역하고, 2단계 에디터({providers?.model_id ?? "…"})가 브리프와 최근
+        운세만 보고 콘텐츠를 씁니다. 유저 계정 없이 동작하며 캐시를 남기지 않습니다.
+        연속 일수를 2 이상으로 두면 앞선 결과를 히스토리로 넘겨 반복 방지가
+        작동하는지 볼 수 있습니다.
       </Typography.Paragraph>
 
       <Card style={{ marginBottom: 16 }}>
@@ -393,51 +439,21 @@ export default function DaliFortuneTestPage() {
         </Form>
       </Card>
 
-      <Collapse
-        style={{ marginBottom: 16 }}
-        items={[
-          {
-            key: "prompt",
-            label: (
-              <Space>
-                시스템 프롬프트
-                {promptModified ? (
-                  <Tag color="orange">수정됨 — 이 실행에만 적용</Tag>
-                ) : (
-                  <Tag>서버 기본값</Tag>
-                )}
-              </Space>
-            ),
-            extra: promptModified && (
-              <Button
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSystemPromptOverride(null);
-                }}
-              >
-                기본값으로 되돌리기
-              </Button>
-            ),
-            children: (
-              <Space direction="vertical" style={{ width: "100%" }} size={8}>
-                <Typography.Text type="secondary">
-                  편집한 본문이 기본 프롬프트 대신 전송됩니다. 출력 언어 블록(# Output
-                  Language)은 서버가 항상 뒤에 붙이므로 여기 쓰지 않아도 됩니다. 실서비스
-                  프롬프트는 바뀌지 않습니다 — 마음에 드는 버전은 코드
-                  (app/services/fortune.py)에 반영해야 합니다.
-                </Typography.Text>
-                <Input.TextArea
-                  value={systemPrompt}
-                  disabled={providersLoading}
-                  onChange={(e) => setSystemPromptOverride(e.target.value)}
-                  autoSize={{ minRows: 12, maxRows: 40 }}
-                  style={{ fontFamily: "monospace", fontSize: 12 }}
-                />
-              </Space>
-            ),
-          },
-        ]}
+      <PromptEditor
+        title="2단계 에디터 프롬프트 (콘텐츠)"
+        hint="편집한 본문이 기본 프롬프트 대신 전송됩니다. 출력 언어 블록은 서버가 항상 뒤에 붙입니다. 실서비스 프롬프트는 바뀌지 않으니, 확정된 버전은 app/prompts/dali_fortune_system.txt 에 반영해야 합니다."
+        defaultValue={defaultEditorPrompt}
+        override={editorPromptOverride}
+        onChange={setEditorPromptOverride}
+        loading={providersLoading}
+      />
+      <PromptEditor
+        title="1단계 브리프 프롬프트 (사주 → 연출 방향)"
+        hint="사주 엔진 데이터를 사주 용어 없는 브리프로 번역하는 프롬프트입니다. 확정된 버전은 app/prompts/dali_fortune_brief_system.txt 에 반영해야 합니다."
+        defaultValue={defaultBriefPrompt}
+        override={briefPromptOverride}
+        onChange={setBriefPromptOverride}
+        loading={providersLoading}
       />
 
       {runs.map((run, index) => (
@@ -517,10 +533,26 @@ export default function DaliFortuneTestPage() {
               ? [
                   {
                     key: "prompt-sent",
-                    label: "실제 전송된 시스템 프롬프트 (언어 블록 포함)",
+                    label: "실제 전송된 에디터 프롬프트 (언어 블록 포함)",
                     children: (
                       <Input.TextArea
                         value={result.system_prompt_sent}
+                        readOnly
+                        autoSize={{ minRows: 6, maxRows: 24 }}
+                        style={{ fontFamily: "monospace", fontSize: 11 }}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+            ...(result?.brief_system_prompt_sent
+              ? [
+                  {
+                    key: "brief-prompt-sent",
+                    label: "실제 전송된 브리프 프롬프트",
+                    children: (
+                      <Input.TextArea
+                        value={result.brief_system_prompt_sent}
                         readOnly
                         autoSize={{ minRows: 6, maxRows: 24 }}
                         style={{ fontFamily: "monospace", fontSize: 11 }}
@@ -533,7 +565,7 @@ export default function DaliFortuneTestPage() {
               key: "engine",
               label: (
                 <Space>
-                  사주 엔진 입력 (LLM 에 전달되는 JSON — 첫날)
+                  사주 엔진 입력 (브리프 단계에 전달되는 JSON — 첫날)
                   {first.fortune === null && <Tag>엔진 입력만 실행됨</Tag>}
                 </Space>
               ),

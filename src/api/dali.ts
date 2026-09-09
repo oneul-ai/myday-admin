@@ -190,11 +190,69 @@ export async function getFortuneProviders() {
   return data;
 }
 
+// 서버가 결정론적으로 만든 사용자 컨텍스트 — 오늘 할 일·일정·생활 패턴·날씨의 장면 후보.
+// 브리프 LLM 이 이 중 2~4개만 골라 오늘 테마와 엮는다. 어드민에서 편집해 보낼 수 있다.
+export interface FortuneUserContext {
+  date: string;
+  timezone: string;
+  profile: {
+    weekday: string;
+    summary: string | null;
+    is_work_day: boolean | null;
+    focus_times: string[];
+    focus_varies: boolean;
+    break_time: string | null;
+    check_in_time: string | null;
+    check_out_time: string | null;
+    planning_pace: string | null;
+  };
+  today_scenes: string[];
+  weather: {
+    summary: string | null;
+    city: string | null;
+    condition: string | null;
+    high: number | null;
+    low: number | null;
+    precipitation_chance: number | null;
+    rain_expected: boolean;
+    rain_from_hour: number | null;
+    sunrise: string | null;
+    sunset: string | null;
+  } | null;
+  time_overlap: string[];
+  content_opportunities: string[];
+  counts: { remaining_tasks: number; must_do: number; timed: number };
+}
+
+export interface FortuneContextResponse {
+  profile: {
+    uid: string;
+    name: string | null;
+    email: string | null;
+    birth_date: string | null; // YYYY-MM-DD
+    birth_time: string | null; // HH:MM
+    birth_calendar: "solar" | "lunar" | "lunar_leap" | null;
+    gender: "male" | "female" | null;
+    timezone: string;
+  };
+  target_date: string;
+  user_context: FortuneUserContext;
+}
+
+export async function getFortuneContext(uid: string, targetDate?: string) {
+  const { data } = await client.get<FortuneContextResponse>(`/dali/fortune/context/${uid}`, {
+    params: targetDate ? { target_date: targetDate } : undefined,
+  });
+  return data;
+}
+
 export interface FortuneTestRequest {
-  birth_date: string; // YYYY-MM-DD
+  user_uid?: string; // 지정하면 생년월일·성별이 비면 프로필에서, user_context 가 비면 유저 데이터로 채움
+  user_context?: FortuneUserContext; // 편집한 컨텍스트 (체인 실행 시 첫날 것 고정)
+  birth_date?: string; // YYYY-MM-DD (user_uid 가 있으면 생략 가능)
   birth_time?: string | null; // HH:MM, 생시 미상이면 null
   birth_calendar?: "solar" | "lunar" | "lunar_leap"; // 기본 solar (음력이면 엔진이 양력 변환)
-  gender: "male" | "female";
+  gender?: "male" | "female"; // user_uid 가 있으면 생략 가능
   target_date?: string; // 기본: 오늘(KST)
   language?: string; // 기본: ko
   engine_only?: boolean; // true 면 LLM 없이 사주 엔진 입력만
@@ -218,6 +276,9 @@ export interface FortuneBait {
 // 1단계(브리프) 출력 — 사주 엔진 데이터를 사주 용어 없이 번역한 오늘의 크리에이티브 브리프.
 // 에디터(2단계)는 원시 사주 데이터 없이 이것만 보고 쓴다.
 export interface FortuneBrief {
+  user_context?: string; // 사용자의 오늘 한 줄 (컨텍스트 없으면 빈 문자열)
+  today_scenes?: string[]; // 브리프가 고른 실제 장면 2~4개
+  content_opportunities?: string[]; // 장면과 테마를 잇는 방법
   core_theme: string;
   sub_theme: string;
   tension: string;
@@ -283,6 +344,7 @@ export interface FortuneTestRun {
   engine_input: Record<string, unknown>;
   basis: FortuneBasis;
   recent_fortunes: FortuneHistoryEntry[]; // 그날 LLM 에 넘긴 히스토리
+  user_context: FortuneUserContext | null; // 그날 브리프에 넘긴 사용자 컨텍스트 (체인은 첫날 고정)
   brief: FortuneBrief | null; // 1단계 결과
   brief_latency_ms: number;
   fortune: FortuneResult | null;
@@ -293,6 +355,7 @@ export interface FortuneTestResponse {
   // 최상위 필드는 첫날(runs[0]) 결과. runs 에 chain_days 일치 전체가 날짜순으로 온다.
   engine_input: Record<string, unknown>;
   basis?: FortuneBasis;
+  user_context?: FortuneUserContext | null;
   brief?: FortuneBrief | null;
   fortune: FortuneResult | null;
   model_id: string | null;

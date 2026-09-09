@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
+  AutoComplete,
   Button,
   Card,
   Checkbox,
@@ -19,15 +20,19 @@ import {
   Typography,
   message,
 } from "antd";
+import { ReloadOutlined } from "@ant-design/icons";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { type Dayjs } from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import { getUsers, type User } from "../api/users";
 import {
   type FortuneBrief,
+  type FortuneUserContext,
   type FortuneHistoryEntry,
   type FortunePillar,
   type FortuneResult,
   type FortuneTestResponse,
   type FortuneTestRun,
+  getFortuneContext,
   getFortuneProviders,
   testFortune,
 } from "../api/dali";
@@ -41,7 +46,7 @@ const LANGUAGES = [
 ];
 
 interface FormValues {
-  birth_date: Dayjs;
+  birth_date?: Dayjs;
   birth_time: Dayjs | null;
   birth_calendar: "solar" | "lunar" | "lunar_leap";
   gender: "male" | "female";
@@ -166,6 +171,25 @@ function FortuneCardView({
 function BriefView({ brief }: { brief: FortuneBrief }) {
   return (
     <Descriptions column={1} size="small">
+      {brief.user_context && (
+        <Descriptions.Item label="사용자 한 줄">{brief.user_context}</Descriptions.Item>
+      )}
+      {brief.today_scenes && brief.today_scenes.length > 0 && (
+        <Descriptions.Item label="고른 장면">
+          <Space wrap>
+            {brief.today_scenes.map((scene) => (
+              <Tag key={scene} color="geekblue">
+                {scene}
+              </Tag>
+            ))}
+          </Space>
+        </Descriptions.Item>
+      )}
+      {brief.content_opportunities && brief.content_opportunities.length > 0 && (
+        <Descriptions.Item label="연결 방법">
+          {brief.content_opportunities.join(" / ")}
+        </Descriptions.Item>
+      )}
       <Descriptions.Item label="핵심 / 보조 테마">
         {brief.core_theme} · {brief.sub_theme}
       </Descriptions.Item>
@@ -208,6 +232,39 @@ function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
         </Typography.Text>
       ))}
     </Space>
+  );
+}
+
+// 서버가 만든 사용자 컨텍스트 요약 — 브리프가 무엇을 골랐는지 대조하는 용도.
+function UserContextView({ context }: { context: FortuneUserContext }) {
+  return (
+    <Descriptions column={1} size="small">
+      <Descriptions.Item label="프로필">
+        {context.profile.weekday} · {context.profile.summary ?? "선호 정보 없음"}
+        {context.profile.break_time && ` · 휴식 ${context.profile.break_time}`}
+        {context.profile.check_in_time &&
+          ` · ${context.profile.check_in_time}~${context.profile.check_out_time ?? ""}`}
+      </Descriptions.Item>
+      <Descriptions.Item label="오늘의 장면 후보">
+        <Space wrap>
+          {context.today_scenes.map((scene) => (
+            <Tag key={scene}>{scene}</Tag>
+          ))}
+        </Space>
+      </Descriptions.Item>
+      <Descriptions.Item label="날씨">
+        {context.weather?.summary ?? "오늘 갱신된 날씨 없음"}
+        {context.weather?.city && ` (${context.weather.city})`}
+      </Descriptions.Item>
+      <Descriptions.Item label="시간 겹침">
+        {context.time_overlap.length > 0 ? context.time_overlap.join(" / ") : "-"}
+      </Descriptions.Item>
+      <Descriptions.Item label="연결 기회(규칙)">
+        {context.content_opportunities.length > 0
+          ? context.content_opportunities.join(" / ")
+          : "-"}
+      </Descriptions.Item>
+    </Descriptions>
   );
 }
 
@@ -266,6 +323,14 @@ function RunMaterial({ run }: { run: FortuneTestRun }) {
         <BriefView brief={run.brief} />
       ) : (
         <Typography.Text type="secondary">브리프 없음 (엔진 입력만 실행)</Typography.Text>
+      )}
+      {run.user_context && (
+        <div style={{ marginTop: 8 }}>
+          <Typography.Text strong style={{ fontSize: 12 }}>
+            브리프에 넘긴 사용자 컨텍스트 (서버 생성 후보)
+          </Typography.Text>
+          <UserContextView context={run.user_context} />
+        </div>
       )}
       {zodiac && (
         <div style={{ marginTop: 8 }}>
@@ -351,6 +416,65 @@ export default function DaliFortuneTestPage() {
   // null 이면 서버 기본 프롬프트를 그대로 쓴다 (요청에 오버라이드를 싣지 않음).
   const [editorPromptOverride, setEditorPromptOverride] = useState<string | null>(null);
   const [briefPromptOverride, setBriefPromptOverride] = useState<string | null>(null);
+  // 유저 선택 — 프로필 생년월일을 폼에 채우고(저장 안 함) 오늘 데이터로 컨텍스트를 만든다.
+  const [userSearch, setUserSearch] = useState("");
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [contextText, setContextText] = useState<string>("");
+  const [contextError, setContextError] = useState<string | null>(null);
+  const [contextDirty, setContextDirty] = useState(false);
+
+  const { data: userSearchData } = useQuery({
+    queryKey: ["users-search", userSearch],
+    queryFn: () => getUsers({ q: userSearch || undefined, limit: 10 }),
+    enabled: userSearch.length >= 1,
+  });
+  const userOptions = useMemo(
+    () =>
+      (userSearchData?.users ?? []).map((u) => ({
+        value: u.uid,
+        label: `${u.name} <${u.email}>`,
+        user: u,
+      })),
+    [userSearchData],
+  );
+
+  const loadContext = useMutation({
+    mutationFn: async (user: User) => {
+      const target = form.getFieldValue("target_date") as Dayjs | null;
+      return getFortuneContext(user.uid, target ? target.format("YYYY-MM-DD") : undefined);
+    },
+    onSuccess: (data) => {
+      const { profile } = data;
+      form.setFieldsValue({
+        birth_date: profile.birth_date ? dayjs(profile.birth_date) : undefined,
+        birth_time: profile.birth_time ? dayjs(profile.birth_time, "HH:mm") : null,
+        birth_calendar: profile.birth_calendar ?? "solar",
+        gender: profile.gender ?? undefined,
+      });
+      setContextText(JSON.stringify(data.user_context, null, 2));
+      setContextDirty(false);
+      setContextError(null);
+      if (!profile.birth_date || !profile.gender) {
+        message.info("프로필에 사주 정보가 없어요. 아래 폼에 직접 입력하세요 (저장되지 않음).");
+      }
+    },
+    onError: (err: unknown) => {
+      const detail = (err as { response?: { data?: { detail?: string } } })
+        ?.response?.data?.detail;
+      message.error(detail ?? "컨텍스트 로드 실패");
+    },
+  });
+
+  const parsedContext = (): FortuneUserContext | undefined | null => {
+    // undefined: 컨텍스트 없이(서버가 user_uid 로 만들거나, 유저 없으면 없이) 실행. null: 파싱 실패.
+    if (!contextText.trim()) return undefined;
+    try {
+      return JSON.parse(contextText) as FortuneUserContext;
+    } catch (e) {
+      setContextError((e as Error).message);
+      return null;
+    }
+  };
 
   const { data: providers, isLoading: providersLoading } = useQuery({
     queryKey: ["dali-fortune-providers"],
@@ -374,8 +498,17 @@ export default function DaliFortuneTestPage() {
       editorPromptOverride !== null && editorPromptOverride !== defaultEditorPrompt;
     const briefModified =
       briefPromptOverride !== null && briefPromptOverride !== defaultBriefPrompt;
+    const context = parsedContext();
+    if (context === null) {
+      message.error("사용자 컨텍스트 JSON 을 파싱할 수 없어요.");
+      return;
+    }
     runMutation.mutate({
-      birth_date: values.birth_date.format("YYYY-MM-DD"),
+      user_uid: selectedUser?.uid,
+      // 편집하지 않았고 유저가 있으면 서버가 같은 컨텍스트를 다시 만들므로 보내지 않아도 되지만,
+      // 표시된 것과 실행된 것을 일치시키기 위해 항상 화면의 값을 보낸다.
+      user_context: context,
+      birth_date: values.birth_date ? values.birth_date.format("YYYY-MM-DD") : undefined,
       birth_time: values.birth_time ? values.birth_time.format("HH:mm") : null,
       birth_calendar: values.birth_calendar,
       gender: values.gender,
@@ -400,6 +533,7 @@ export default function DaliFortuneTestPage() {
             engine_input: result.engine_input,
             basis: result.basis!,
             recent_fortunes: [],
+            user_context: result.user_context ?? null,
             brief: result.brief ?? null,
             brief_latency_ms: 0,
             fortune: result.fortune,
@@ -423,6 +557,54 @@ export default function DaliFortuneTestPage() {
         작동하는지 볼 수 있습니다.
       </Typography.Paragraph>
 
+      <Card
+        title="유저 선택 (선택 사항)"
+        size="small"
+        style={{ marginBottom: 16 }}
+        extra={
+          <Typography.Text type="secondary">
+            프로필의 생년월일·성별을 폼에 채우고 오늘 할 일·일정·날씨로 컨텍스트를 만듭니다.
+            여기서 입력·수정한 값은 DB에 저장되지 않습니다.
+          </Typography.Text>
+        }
+      >
+        <Row gutter={12} align="middle">
+          <Col flex="auto">
+            <AutoComplete
+              style={{ width: "100%" }}
+              placeholder="이름/이메일로 유저 검색 — 비우면 아래 폼 입력만으로 실행"
+              options={userOptions}
+              onSearch={setUserSearch}
+              onSelect={(_, option) => {
+                const opt = option as unknown as { user: User };
+                setSelectedUser(opt.user);
+                loadContext.mutate(opt.user);
+              }}
+              value={selectedUser ? `${selectedUser.name} <${selectedUser.email}>` : userSearch}
+              onChange={(v) => {
+                setUserSearch(v);
+                if (selectedUser && v !== `${selectedUser.name} <${selectedUser.email}>`) {
+                  setSelectedUser(null);
+                  setContextText("");
+                  setContextDirty(false);
+                }
+              }}
+              allowClear
+            />
+          </Col>
+          <Col>
+            <Button
+              icon={<ReloadOutlined />}
+              loading={loadContext.isPending}
+              disabled={!selectedUser}
+              onClick={() => selectedUser && loadContext.mutate(selectedUser)}
+            >
+              컨텍스트 다시 로드
+            </Button>
+          </Col>
+        </Row>
+      </Card>
+
       <Card style={{ marginBottom: 16 }}>
         <Form
           form={form}
@@ -441,7 +623,7 @@ export default function DaliFortuneTestPage() {
           <Form.Item
             name="birth_date"
             label="생년월일"
-            rules={[{ required: true, message: "필수" }]}
+            rules={[{ required: !selectedUser, message: "필수 (유저를 고르면 프로필에서 채움)" }]}
           >
             <DatePicker placeholder="1990-03-05" />
           </Form.Item>
@@ -458,7 +640,7 @@ export default function DaliFortuneTestPage() {
           <Form.Item name="birth_time" label="생시" extra="모르면 비움">
             <TimePicker format="HH:mm" placeholder="14:30" />
           </Form.Item>
-          <Form.Item name="gender" label="성별" rules={[{ required: true }]}>
+          <Form.Item name="gender" label="성별" rules={[{ required: !selectedUser }]}>
             <Select
               style={{ width: 90 }}
               options={[
@@ -490,6 +672,53 @@ export default function DaliFortuneTestPage() {
           </Form.Item>
         </Form>
       </Card>
+
+      <Collapse
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            key: "context",
+            label: (
+              <Space>
+                사용자 컨텍스트 (브리프에 넘기는 오늘의 장면 후보)
+                {contextText ? (
+                  contextDirty ? (
+                    <Tag color="orange">편집됨 — 이 실행에만 적용</Tag>
+                  ) : (
+                    <Tag color="blue">서버 생성</Tag>
+                  )
+                ) : (
+                  <Tag>없음 — 사주만으로 생성</Tag>
+                )}
+              </Space>
+            ),
+            children: (
+              <Space direction="vertical" style={{ width: "100%" }} size={8}>
+                <Typography.Text type="secondary">
+                  유저를 고르면 서버가 오늘 할 일·Must Do·일정·습관·생활 패턴·날씨로 만든 장면
+                  후보가 채워집니다. JSON 을 편집해 다른 하루를 가정해 볼 수 있고, 비우면 사주만으로
+                  생성합니다. 연속 실행은 첫날 컨텍스트를 고정해 씁니다 (실서비스의 "첫 생성 시점
+                  고정"과 같음).
+                </Typography.Text>
+                <Input.TextArea
+                  value={contextText}
+                  onChange={(e) => {
+                    setContextText(e.target.value);
+                    setContextDirty(true);
+                    setContextError(null);
+                  }}
+                  autoSize={{ minRows: 8, maxRows: 30 }}
+                  style={{ fontFamily: "monospace", fontSize: 12 }}
+                  placeholder="유저를 선택하면 채워집니다. 직접 JSON 을 넣어도 됩니다."
+                />
+                {contextError && (
+                  <Typography.Text type="danger">JSON 파싱 에러: {contextError}</Typography.Text>
+                )}
+              </Space>
+            ),
+          },
+        ]}
+      />
 
       <PromptEditor
         title="2단계 에디터 프롬프트 (콘텐츠)"

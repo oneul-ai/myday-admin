@@ -262,14 +262,24 @@ export interface FortuneTestRequest {
   chain_days?: number; // 1~7. 2 이상이면 하루씩 이어 생성하며 앞선 결과를 히스토리로 넘김
 }
 
-export interface FortuneCard {
-  name: string; // 능력치 이름 — 고정 카테고리 없이 날마다 작명 (결정력, 지갑 방어력 …)
+export interface FortuneScored {
   score: number; // 0~100
-  message: string; // 1~2문장, 오늘 일어날 법한 장면 포함
+  message: string; // 1~2문장, 오늘의 장면 포함
 }
 
-export interface FortuneBait {
-  kind: string; // 색/시간/장소/음식/물건/단어/행동 … 짧은 라벨
+// 기본 운세 카테고리 — 키·순서 고정 ("카테고리는 전통 운세처럼, 내용은 MyDay 처럼").
+export const FORTUNE_CATEGORY_KEYS = ["work_study", "money", "love", "people", "health"] as const;
+export type FortuneCategoryKey = (typeof FORTUNE_CATEGORY_KEYS)[number];
+export const FORTUNE_CATEGORY_LABELS: Record<FortuneCategoryKey, string> = {
+  work_study: "일·공부운",
+  money: "재물운",
+  love: "연애운",
+  people: "대인운",
+  health: "건강운",
+};
+
+export interface FortuneLuckyItem {
+  kind: string; // 색/음식/시간/장소/물건/단어/행동 … 짧은 라벨
   value: string;
 }
 
@@ -279,6 +289,7 @@ export interface FortuneBrief {
   user_context?: string; // 사용자의 오늘 한 줄 (컨텍스트 없으면 빈 문자열)
   today_scenes?: string[]; // 브리프가 고른 실제 장면 2~4개
   content_opportunities?: string[]; // 장면과 테마를 잇는 방법
+  special_fortune_candidates?: string[]; // 오늘의 특별운 후보 (첫 번째가 1순위)
   core_theme: string;
   sub_theme: string;
   tension: string;
@@ -292,16 +303,18 @@ export interface FortuneBrief {
   colors: string[];
 }
 
-// 운세 payload — 2026-09 2단계 개편 후 형태. 개편 전 캐시는 이 페이지(어드민 테스트,
-// 항상 새로 생성)에서는 오지 않는다.
+// 운세 payload — 2026-09 개편 후 형태. 개편 전 캐시는 이 페이지(어드민 테스트, 항상 새로
+// 생성)에서는 오지 않는다.
 export interface FortuneResult {
-  headline: string;
-  cards: FortuneCard[]; // 4개
+  headline: string; // 오늘의 한 줄 (총운 헤드라인)
+  overall: FortuneScored; // 총운 점수 + 하루 전체 분위기 한 문장
+  special: { name: string; stars: number; message: string }; // 오늘의 특별운 (별 1~5)
+  categories: Record<FortuneCategoryKey, FortuneScored>; // 일·공부/재물/연애/대인/건강
   quest: { title: string; reason: string }; // 오늘의 퀘스트 (title 은 그대로 할 일 제목)
   dali_comment: string; // 달이의 한마디
   charm: string; // 오늘의 주문 (3~10글자)
-  baits: FortuneBait[]; // 오늘의 떡밥 3~5개
-  compatibility: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
+  lucky_items: FortuneLuckyItem[]; // 럭키 아이템 3~5개
+  compatibility: { good: string[]; caution: string[] }; // 오늘 잘 맞는/조심할 띠
   brief?: FortuneBrief; // 생성에 쓰인 브리프 (payload 에 함께 저장)
 }
 
@@ -310,13 +323,15 @@ export interface FortuneResult {
 export interface FortuneHistoryEntry {
   date: string;
   headline: string | null;
+  overall?: string | null;
+  special?: string | null; // 그날의 특별운 이름
   core_theme?: string | null;
   playful_angle?: string | null;
   card_names: string[];
   card_messages?: string[];
   quest: string | null;
   dali_comment?: string | null;
-  baits: string[];
+  lucky_items: string[];
   charm: string | null;
 }
 

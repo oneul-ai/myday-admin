@@ -25,6 +25,8 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import dayjs, { type Dayjs } from "dayjs";
 import { getUsers, type User } from "../api/users";
 import {
+  FORTUNE_CATEGORY_KEYS,
+  FORTUNE_CATEGORY_LABELS,
   type FortuneBrief,
   type FortuneUserContext,
   type FortuneHistoryEntry,
@@ -106,21 +108,42 @@ function FortuneCardView({
       extra={extra}
       style={{ marginBottom: 16 }}
     >
+      <Space style={{ marginBottom: 12 }}>
+        <Tag color="blue">총운 {fortune.overall.score}</Tag>
+        <Typography.Text type="secondary">{fortune.overall.message}</Typography.Text>
+      </Space>
+      <Card size="small" style={{ marginBottom: 16, background: "#fff7e6" }}>
+        <Space direction="vertical" size={2}>
+          <Space>
+            <Tag color="orange">오늘의 특별운</Tag>
+            <Typography.Text strong>{fortune.special.name}</Typography.Text>
+            <Typography.Text style={{ color: "#fa8c16" }}>
+              {"★".repeat(Math.max(0, Math.min(5, fortune.special.stars)))}
+              {"☆".repeat(Math.max(0, 5 - Math.min(5, fortune.special.stars)))}
+            </Typography.Text>
+          </Space>
+          <Typography.Text>{fortune.special.message}</Typography.Text>
+        </Space>
+      </Card>
+
       <Row gutter={[16, 16]}>
-        {fortune.cards.map((card, index) => (
-          <Col key={`${card.name}-${index}`} xs={24} sm={12}>
-            <Card size="small" title={card.name}>
-              <Progress
-                percent={card.score}
-                strokeColor={scoreColor(card.score)}
-                format={(v) => `${v}`}
-              />
-              <Typography.Paragraph style={{ marginBottom: 0 }}>
-                {card.message}
-              </Typography.Paragraph>
-            </Card>
-          </Col>
-        ))}
+        {FORTUNE_CATEGORY_KEYS.map((key) => {
+          const category = fortune.categories[key];
+          return (
+            <Col key={key} xs={24} sm={12} md={8}>
+              <Card size="small" title={FORTUNE_CATEGORY_LABELS[key]}>
+                <Progress
+                  percent={category.score}
+                  strokeColor={scoreColor(category.score)}
+                  format={(v) => `${v}점`}
+                />
+                <Typography.Paragraph style={{ marginBottom: 0 }}>
+                  {category.message}
+                </Typography.Paragraph>
+              </Card>
+            </Col>
+          );
+        })}
       </Row>
 
       <Card size="small" style={{ marginTop: 16, background: "#f6ffed" }}>
@@ -142,10 +165,10 @@ function FortuneCardView({
         <Typography.Text strong>{fortune.charm}</Typography.Text>
       </Typography.Paragraph>
 
-      <Descriptions title="오늘의 떡밥" column={fortune.baits.length} size="small">
-        {fortune.baits.map((bait, index) => (
-          <Descriptions.Item key={`${bait.kind}-${index}`} label={bait.kind}>
-            {bait.value}
+      <Descriptions title="럭키 아이템" column={fortune.lucky_items.length} size="small">
+        {fortune.lucky_items.map((item, index) => (
+          <Descriptions.Item key={`${item.kind}-${index}`} label={item.kind}>
+            {item.value}
           </Descriptions.Item>
         ))}
       </Descriptions>
@@ -190,6 +213,11 @@ function BriefView({ brief }: { brief: FortuneBrief }) {
           {brief.content_opportunities.join(" / ")}
         </Descriptions.Item>
       )}
+      {brief.special_fortune_candidates && brief.special_fortune_candidates.length > 0 && (
+        <Descriptions.Item label="특별운 후보">
+          {brief.special_fortune_candidates.join(" · ")}
+        </Descriptions.Item>
+      )}
       <Descriptions.Item label="핵심 / 보조 테마">
         {brief.core_theme} · {brief.sub_theme}
       </Descriptions.Item>
@@ -226,9 +254,9 @@ function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
       {entries.map((entry) => (
         <Typography.Text key={entry.date} style={{ fontSize: 12 }}>
           <Typography.Text type="secondary">{entry.date}</Typography.Text>{" "}
-          {entry.headline ?? "-"} · 테마 {entry.core_theme ?? "-"} · 카드{" "}
-          {entry.card_names.join(", ") || "-"} · 퀘스트 {entry.quest ?? "-"} · 떡밥{" "}
-          {entry.baits.join(", ") || "-"}
+          {entry.headline ?? "-"} · 특별운 {entry.special ?? "-"} · 테마{" "}
+          {entry.core_theme ?? "-"} · 퀘스트 {entry.quest ?? "-"} · 럭키{" "}
+          {entry.lucky_items.join(", ") || "-"}
         </Typography.Text>
       ))}
     </Space>

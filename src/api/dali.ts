@@ -184,43 +184,54 @@ export interface FortuneTestRequest {
   target_date?: string; // 기본: 오늘(KST)
   language?: string; // 기본: ko
   engine_only?: boolean; // true 면 LLM 없이 사주 엔진 입력만
+  recent_fortunes?: FortuneHistoryEntry[]; // 첫날에 넘길 히스토리 (선택)
+  chain_days?: number; // 1~7. 2 이상이면 하루씩 이어 생성하며 앞선 결과를 히스토리로 넘김
 }
 
-export interface FortuneCategory {
-  score: number;
-  message: string;
+export interface FortuneCard {
+  topic: string; // 오늘 중요한 주제 (일/돈/사람/대화/휴식 … 날마다 다름)
+  score: number; // 0~100
+  message: string; // 1~2문장, 오늘의 장면 포함
 }
 
+export interface FortuneLuckyItem {
+  kind: string; // 물건/음식/장소/시간/행동/단어/음악 … 짧은 라벨
+  value: string;
+}
+
+// 운세 payload — 2026-09 개편 후 형태. 개편 전 캐시(categories/mission/lucky)는
+// 이 페이지(어드민 테스트, 항상 새로 생성)에서는 오지 않는다.
 export interface FortuneResult {
+  character: string; // 오늘의 캐릭터 (예: 오늘의 협상가)
   headline: string;
-  summary: string;
-  categories: Record<
-    "overall" | "work_study" | "relationship" | "money" | "wellbeing",
-    FortuneCategory
-  >;
-  lucky: {
-    color: string | null;
-    number: number | null;
-    direction: string | null;
-    time: string | null;
-    food: string | null;
-    item?: string | null; // 럭키 아이템 (서버 신규 필드)
-  };
-  // 이전 캐시 응답에는 없을 수 있어 전부 optional (서버 신규 필드)
-  mission?: { title: string; reason: string };
-  dali_comment?: string; // 달이의 한 마디
-  charm?: string; // 오늘의 주문 (부적 문구)
-  compatibility?: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
-  day_card?: { title: string; image: string }; // 오늘의 일진 카드 (이름·그림 묘사)
-  keywords?: string[]; // 오늘의 키워드 3개 (해시태그용)
+  cards: FortuneCard[]; // 3~5개
+  spotlight: { topic: string; line: string }; // cards 중 오늘 가장 특징적인 주제
+  quest: { title: string; reason: string }; // 오늘의 퀘스트 (title 은 그대로 할 일 제목)
+  dali_comment: string; // 달이의 한마디 (반말, 가장 자유로운 영역)
+  lucky_items: FortuneLuckyItem[]; // 3~5개
+  charm: string; // 오늘의 주문 (부적 문구)
+  compatibility: { good: string[]; caution: string[] }; // 잘 맞는/조심할 띠
 }
 
-// 글쓰기 스타일 카드 — 날짜(60갑자 순번)·일간으로 결정되는 비유 렌즈·헤드라인
-// 형식·스포트라이트 카테고리. 운세가 매일 같은 패턴으로 나오지 않게 하는 입력.
+// 글쓰기 스타일 카드 — 날짜(60갑자 순번)·일간으로 결정되는 헤드라인 형식.
+// 히스토리가 없는 첫날에도 헤드라인이 매일 다른 모양이 되게 하는 입력.
 export interface FortuneWritingStyle {
-  lens: string;
   headline_form: string;
-  spotlight_category: "work_study" | "relationship" | "money" | "wellbeing";
+}
+
+// 최근 운세 요약 — LLM 에 recent_fortunes 로 넘겨 반복을 피하고 연속성을 준다.
+// 실서비스는 유저의 daily_fortunes 캐시 14일치에서 자동 수집한다.
+export interface FortuneHistoryEntry {
+  date: string;
+  character: string | null;
+  headline: string | null;
+  spotlight: string | null;
+  spotlight_line?: string | null;
+  card_topics: string[];
+  quest: string | null;
+  dali_comment?: string | null;
+  lucky_items: string[];
+  charm: string | null;
 }
 
 export interface FortunePillar {
@@ -242,13 +253,25 @@ export interface FortuneBasis {
   five_elements: Record<"wood" | "fire" | "earth" | "metal" | "water", number>;
 }
 
+export interface FortuneTestRun {
+  target_date: string;
+  engine_input: Record<string, unknown>;
+  basis: FortuneBasis;
+  writing_style: FortuneWritingStyle;
+  recent_fortunes: FortuneHistoryEntry[]; // 그날 LLM 에 넘긴 히스토리
+  fortune: FortuneResult | null;
+  latency_ms: number;
+}
+
 export interface FortuneTestResponse {
+  // 최상위 필드는 첫날(runs[0]) 결과. runs 에 chain_days 일치 전체가 날짜순으로 온다.
   engine_input: Record<string, unknown>;
   basis?: FortuneBasis;
-  writing_style?: FortuneWritingStyle; // engine_only 여도 내려온다 (구버전 API 는 없음)
+  writing_style?: FortuneWritingStyle;
   fortune: FortuneResult | null;
   model_id: string | null;
   latency_ms: number;
+  runs?: FortuneTestRun[]; // 구버전 API 는 없음
 }
 
 export async function testFortune(body: FortuneTestRequest) {

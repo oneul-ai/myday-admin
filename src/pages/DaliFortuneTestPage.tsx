@@ -8,6 +8,7 @@ import {
   DatePicker,
   Descriptions,
   Form,
+  InputNumber,
   Progress,
   Row,
   Select,
@@ -20,24 +21,13 @@ import {
 import { useMutation } from "@tanstack/react-query";
 import { type Dayjs } from "dayjs";
 import {
+  type FortuneHistoryEntry,
   type FortunePillar,
+  type FortuneResult,
   type FortuneTestResponse,
+  type FortuneTestRun,
   testFortune,
 } from "../api/dali";
-
-// 엔진 입력 JSON 의 today.imagery — 일진 카드 재료 (구버전 API 는 없음).
-interface TodayImagery {
-  stem: string;
-  branch: string;
-  nayin: { name: string; hanja: string; element: string; image: string };
-}
-
-function readTodayImagery(
-  engineInput: Record<string, unknown>,
-): TodayImagery | null {
-  const today = engineInput.today as { imagery?: TodayImagery } | undefined;
-  return today?.imagery ?? null;
-}
 
 const LANGUAGES = [
   { value: "ko", label: "한국어 (ko)" },
@@ -47,14 +37,6 @@ const LANGUAGES = [
   { value: "zh-Hant", label: "중국어 번체 (zh-Hant)" },
 ];
 
-const CATEGORY_LABELS: Record<string, string> = {
-  overall: "총운",
-  work_study: "일·공부",
-  relationship: "관계",
-  money: "재물",
-  wellbeing: "컨디션",
-};
-
 interface FormValues {
   birth_date: Dayjs;
   birth_time: Dayjs | null;
@@ -63,6 +45,7 @@ interface FormValues {
   target_date: Dayjs | null;
   language: string;
   engine_only: boolean;
+  chain_days: number;
 }
 
 function scoreColor(score: number) {
@@ -82,6 +65,191 @@ const ELEMENT_LABELS: Record<string, { label: string; color: string }> = {
 
 function pillarText(pillar: FortunePillar | null) {
   return pillar ? `${pillar.name}(${pillar.hanja})` : "-";
+}
+
+// 엔진 입력 JSON 의 time_guide / today.imagery — 운영자가 LLM 재료를 검산하는 용도.
+interface EngineTimeWindow {
+  hours: string;
+  reasons: string[];
+}
+interface EngineMaterial {
+  time_guide: Record<"focus" | "caution" | "rest", EngineTimeWindow> | null;
+  imagery: {
+    stem: string;
+    branch: string;
+    nayin: { name: string; hanja: string; image: string };
+  } | null;
+}
+
+function readEngineMaterial(engineInput: Record<string, unknown>): EngineMaterial {
+  const timeGuide = engineInput.time_guide as EngineMaterial["time_guide"] | undefined;
+  const today = engineInput.today as { imagery?: EngineMaterial["imagery"] } | undefined;
+  return { time_guide: timeGuide ?? null, imagery: today?.imagery ?? null };
+}
+
+const TIME_GUIDE_KINDS = [
+  { key: "focus", label: "집중", color: "green" },
+  { key: "caution", label: "조심", color: "volcano" },
+  { key: "rest", label: "쉼", color: "cyan" },
+] as const;
+
+function FortuneCardView({
+  fortune,
+  title,
+  extra,
+}: {
+  fortune: FortuneResult;
+  title: string;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <Card
+      title={
+        <Space direction="vertical" size={0}>
+          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+            {title}
+          </Typography.Text>
+          <Space>
+            <Tag color="magenta">{fortune.character}</Tag>
+            <Typography.Text strong style={{ fontSize: 16 }}>
+              {fortune.headline}
+            </Typography.Text>
+          </Space>
+        </Space>
+      }
+      extra={extra}
+      style={{ marginBottom: 16 }}
+    >
+      <Card size="small" style={{ marginBottom: 16, background: "#fff7e6" }}>
+        <Space>
+          <Tag color="orange">스포트라이트 · {fortune.spotlight.topic}</Tag>
+          <Typography.Text>{fortune.spotlight.line}</Typography.Text>
+        </Space>
+      </Card>
+
+      <Row gutter={[16, 16]}>
+        {fortune.cards.map((card) => (
+          <Col key={card.topic} xs={24} sm={12} md={8}>
+            <Card
+              size="small"
+              title={card.topic}
+              extra={
+                card.topic === fortune.spotlight.topic && (
+                  <Tag color="orange">스포트라이트</Tag>
+                )
+              }
+            >
+              <Progress
+                percent={card.score}
+                strokeColor={scoreColor(card.score)}
+                format={(v) => `${v}점`}
+              />
+              <Typography.Paragraph style={{ marginBottom: 0 }}>
+                {card.message}
+              </Typography.Paragraph>
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      <Card size="small" style={{ marginTop: 16, background: "#f6ffed" }}>
+        <Space direction="vertical" size={2}>
+          <Space>
+            <Tag color="green">오늘의 퀘스트</Tag>
+            <Typography.Text strong>{fortune.quest.title}</Typography.Text>
+          </Space>
+          <Typography.Text type="secondary">{fortune.quest.reason}</Typography.Text>
+        </Space>
+      </Card>
+
+      <Typography.Paragraph style={{ marginTop: 16 }}>
+        <Tag color="purple">달이의 한마디</Tag>
+        {fortune.dali_comment}
+      </Typography.Paragraph>
+      <Typography.Paragraph>
+        <Tag color="gold">오늘의 주문</Tag>
+        <Typography.Text strong>{fortune.charm}</Typography.Text>
+      </Typography.Paragraph>
+
+      <Descriptions title="럭키 아이템" column={fortune.lucky_items.length} size="small">
+        {fortune.lucky_items.map((item, index) => (
+          <Descriptions.Item key={`${item.kind}-${index}`} label={item.kind}>
+            {item.value}
+          </Descriptions.Item>
+        ))}
+      </Descriptions>
+      <Descriptions title="오늘의 띠 궁합" column={2} size="small" style={{ marginTop: 16 }}>
+        <Descriptions.Item label="잘 맞는 띠">
+          {fortune.compatibility.good.length > 0 ? fortune.compatibility.good.join(", ") : "-"}
+        </Descriptions.Item>
+        <Descriptions.Item label="조심할 띠">
+          {fortune.compatibility.caution.length > 0
+            ? fortune.compatibility.caution.join(", ")
+            : "-"}
+        </Descriptions.Item>
+      </Descriptions>
+    </Card>
+  );
+}
+
+function HistoryList({ entries }: { entries: FortuneHistoryEntry[] }) {
+  if (entries.length === 0) {
+    return <Typography.Text type="secondary">히스토리 없음 (첫날)</Typography.Text>;
+  }
+  return (
+    <Space direction="vertical" size={4} style={{ width: "100%" }}>
+      {entries.map((entry) => (
+        <Typography.Text key={entry.date} style={{ fontSize: 12 }}>
+          <Typography.Text type="secondary">{entry.date}</Typography.Text>{" "}
+          {entry.character ?? "-"} · {entry.headline ?? "-"} · 스포트라이트{" "}
+          {entry.spotlight ?? "-"} · 퀘스트 {entry.quest ?? "-"} · 럭키{" "}
+          {entry.lucky_items.join(", ") || "-"}
+        </Typography.Text>
+      ))}
+    </Space>
+  );
+}
+
+function RunMaterial({ run }: { run: FortuneTestRun }) {
+  const material = readEngineMaterial(run.engine_input);
+  return (
+    <Card
+      size="small"
+      title={`${run.target_date} — LLM 재료 (히스토리 · 헤드라인 형식 · 시간 흐름 · 물상)`}
+      style={{ marginBottom: 16 }}
+    >
+      <Descriptions column={1} size="small">
+        <Descriptions.Item label="recent_fortunes">
+          <HistoryList entries={run.recent_fortunes} />
+        </Descriptions.Item>
+        <Descriptions.Item label="헤드라인 형식">
+          {run.writing_style.headline_form}
+        </Descriptions.Item>
+        {material.time_guide && (
+          <Descriptions.Item label="시간 흐름">
+            <Space wrap>
+              {TIME_GUIDE_KINDS.map(({ key, label, color }) => (
+                <span key={key}>
+                  <Tag color={color}>{label}</Tag>
+                  {material.time_guide?.[key].hours}{" "}
+                  <Typography.Text type="secondary">
+                    ({material.time_guide?.[key].reasons.join(", ")})
+                  </Typography.Text>
+                </span>
+              ))}
+            </Space>
+          </Descriptions.Item>
+        )}
+        {material.imagery && (
+          <Descriptions.Item label="오늘의 물상">
+            천간: {material.imagery.stem} · 지지: {material.imagery.branch} · 납음:{" "}
+            {material.imagery.nayin.name}({material.imagery.nayin.hanja}) —{" "}
+            {material.imagery.nayin.image}
+          </Descriptions.Item>
+        )}
+      </Descriptions>
+    </Card>
+  );
 }
 
 export default function DaliFortuneTestPage() {
@@ -109,10 +277,27 @@ export default function DaliFortuneTestPage() {
         : undefined,
       language: values.language,
       engine_only: values.engine_only,
+      chain_days: values.chain_days,
     });
   };
 
-  const fortune = result?.fortune;
+  // 구버전 API(runs 없음) 호환: 최상위 필드로 단일 run 을 구성한다.
+  const runs: FortuneTestRun[] =
+    result?.runs ??
+    (result
+      ? [
+          {
+            target_date: "",
+            engine_input: result.engine_input,
+            basis: result.basis!,
+            writing_style: result.writing_style ?? { headline_form: "" },
+            recent_fortunes: [],
+            fortune: result.fortune,
+            latency_ms: result.latency_ms,
+          },
+        ]
+      : []);
+  const first = runs[0];
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -122,7 +307,9 @@ export default function DaliFortuneTestPage() {
       <Typography.Paragraph type="secondary">
         생년월일·생시·성별로 사주 엔진 입력을 계산하고, 실서비스와 같은 모델
         (gpt-5.6-sol)·프롬프트로 운세를 생성합니다. 유저 계정 없이 동작하며
-        캐시를 남기지 않습니다.
+        캐시를 남기지 않습니다. 연속 일수를 2 이상으로 두면 하루씩 이어
+        생성하면서 앞선 결과를 히스토리(recent_fortunes)로 넘겨, 실서비스처럼
+        반복 방지·연속성이 작동하는지 볼 수 있습니다.
       </Typography.Paragraph>
 
       <Card style={{ marginBottom: 16 }}>
@@ -137,6 +324,7 @@ export default function DaliFortuneTestPage() {
             birth_time: null,
             birth_calendar: "solar",
             target_date: null,
+            chain_days: 1,
           }}
         >
           <Form.Item
@@ -174,6 +362,9 @@ export default function DaliFortuneTestPage() {
           <Form.Item name="language" label="언어">
             <Select style={{ width: 180 }} options={LANGUAGES} />
           </Form.Item>
+          <Form.Item name="chain_days" label="연속 일수" extra="1~7일, 하루씩 이어 생성">
+            <InputNumber min={1} max={7} style={{ width: 70 }} />
+          </Form.Item>
           <Form.Item name="engine_only" valuePropName="checked">
             <Checkbox>엔진 입력만 (LLM 생략)</Checkbox>
           </Form.Item>
@@ -189,220 +380,61 @@ export default function DaliFortuneTestPage() {
         </Form>
       </Card>
 
-      {fortune && (
-        <Card
-          title={fortune.headline}
-          extra={
-            result && (
-              <Typography.Text type="secondary">
-                {result.model_id} · {result.latency_ms}ms
-              </Typography.Text>
-            )
-          }
-          style={{ marginBottom: 16 }}
-        >
-          {fortune.keywords && fortune.keywords.length > 0 && (
-            <Space size={4} wrap style={{ marginBottom: 12 }}>
-              {fortune.keywords.map((keyword) => (
-                <Tag key={keyword} color="blue">
-                  #{keyword}
-                </Tag>
-              ))}
-            </Space>
-          )}
-          <Typography.Paragraph>{fortune.summary}</Typography.Paragraph>
-          {fortune.day_card && (
-            <Card
-              size="small"
-              style={{ marginBottom: 16, background: "#f9f0ff" }}
-            >
-              <Space direction="vertical" size={2}>
-                <Space>
-                  <Tag color="magenta">오늘의 일진 카드</Tag>
-                  <Typography.Text strong>{fortune.day_card.title}</Typography.Text>
-                  {result?.basis && (
-                    <Typography.Text type="secondary">
-                      {result.basis.today.name}({result.basis.today.hanja})
-                    </Typography.Text>
-                  )}
-                </Space>
+      {runs.map((run, index) => (
+        <div key={run.target_date || index}>
+          {run.fortune && (
+            <FortuneCardView
+              fortune={run.fortune}
+              title={
+                runs.length > 1
+                  ? `${index + 1}일차 · ${run.target_date}`
+                  : run.target_date
+              }
+              extra={
                 <Typography.Text type="secondary">
-                  {fortune.day_card.image}
+                  {result?.model_id} · {run.latency_ms}ms
                 </Typography.Text>
-              </Space>
-            </Card>
+              }
+            />
           )}
-          {fortune.dali_comment && (
-            <Typography.Paragraph>
-              <Tag color="purple">달이의 한 마디</Tag>
-              {fortune.dali_comment}
-            </Typography.Paragraph>
-          )}
-          {fortune.charm && (
-            <Typography.Paragraph>
-              <Tag color="gold">오늘의 주문</Tag>
-              <Typography.Text strong>{fortune.charm}</Typography.Text>
-            </Typography.Paragraph>
-          )}
-          {fortune.mission && (
-            <Card
-              size="small"
-              style={{ marginBottom: 16, background: "#f6ffed" }}
-            >
-              <Space direction="vertical" size={2}>
-                <Space>
-                  <Tag color="green">오늘의 미션</Tag>
-                  <Typography.Text strong>
-                    {fortune.mission.title}
-                  </Typography.Text>
-                </Space>
-                <Typography.Text type="secondary">
-                  {fortune.mission.reason}
-                </Typography.Text>
-              </Space>
-            </Card>
-          )}
-          <Row gutter={[16, 16]}>
-            {Object.entries(fortune.categories).map(([key, category]) => (
-              <Col key={key} xs={24} sm={12} md={8}>
-                <Card
-                  size="small"
-                  title={CATEGORY_LABELS[key] ?? key}
-                  extra={
-                    result?.writing_style?.spotlight_category === key && (
-                      <Tag color="orange">스포트라이트</Tag>
-                    )
-                  }
-                >
-                  <Progress
-                    percent={category.score}
-                    strokeColor={scoreColor(category.score)}
-                    format={(v) => `${v}점`}
-                  />
-                  <Typography.Paragraph style={{ marginBottom: 0 }}>
-                    {category.message}
-                  </Typography.Paragraph>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-          <Descriptions
-            title="럭키 아이템"
-            column={6}
-            size="small"
-            style={{ marginTop: 16 }}
-          >
-            <Descriptions.Item label="색상">
-              {fortune.lucky.color ?? "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="숫자">
-              {fortune.lucky.number ?? "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="방향">
-              {fortune.lucky.direction ?? "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="시간">
-              {fortune.lucky.time ?? "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="음식">
-              {fortune.lucky.food ?? "-"}
-            </Descriptions.Item>
-            <Descriptions.Item label="아이템">
-              {fortune.lucky.item ?? "-"}
-            </Descriptions.Item>
-          </Descriptions>
-          {fortune.compatibility && (
-            <Descriptions
-              title="오늘의 띠 궁합"
-              column={2}
-              size="small"
-              style={{ marginTop: 16 }}
-            >
-              <Descriptions.Item label="잘 맞는 띠">
-                {fortune.compatibility.good.length > 0
-                  ? fortune.compatibility.good.join(", ")
-                  : "-"}
-              </Descriptions.Item>
-              <Descriptions.Item label="조심할 띠">
-                {fortune.compatibility.caution.length > 0
-                  ? fortune.compatibility.caution.join(", ")
-                  : "-"}
-              </Descriptions.Item>
-            </Descriptions>
-          )}
-        </Card>
-      )}
+          <RunMaterial run={run} />
+        </div>
+      ))}
 
-      {result?.writing_style && (
+      {first?.basis && (
         <Card
-          title="글쓰기 스타일 카드 (날짜·일간으로 결정 — 매일 바뀌는 서술 방식)"
-          size="small"
-          style={{ marginBottom: 16 }}
-        >
-          <Descriptions column={1} size="small">
-            <Descriptions.Item label="비유 렌즈">
-              {result.writing_style.lens}
-            </Descriptions.Item>
-            <Descriptions.Item label="헤드라인 형식">
-              {result.writing_style.headline_form}
-            </Descriptions.Item>
-            <Descriptions.Item label="스포트라이트">
-              {CATEGORY_LABELS[result.writing_style.spotlight_category] ??
-                result.writing_style.spotlight_category}{" "}
-              <Typography.Text type="secondary">
-                (장면으로 서술하는 카테고리)
-              </Typography.Text>
-            </Descriptions.Item>
-            {(() => {
-              const imagery = readTodayImagery(result.engine_input);
-              return (
-                imagery && (
-                  <Descriptions.Item label="오늘의 물상">
-                    천간: {imagery.stem} · 지지: {imagery.branch} · 납음:{" "}
-                    {imagery.nayin.name}({imagery.nayin.hanja}) —{" "}
-                    {imagery.nayin.image}
-                  </Descriptions.Item>
-                )
-              );
-            })()}
-          </Descriptions>
-        </Card>
-      )}
-
-      {result?.basis && (
-        <Card
-          title="사주 근거 (유저에게 보이는 검증 가능한 사실)"
+          title="사주 근거 (유저에게 보이는 검증 가능한 사실 — 첫날 기준)"
           size="small"
           style={{ marginBottom: 16 }}
         >
           <Descriptions column={4} size="small">
             <Descriptions.Item label="년주">
-              {pillarText(result.basis.natal_chart.year_pillar)}
+              {pillarText(first.basis.natal_chart.year_pillar)}
             </Descriptions.Item>
             <Descriptions.Item label="월주">
-              {pillarText(result.basis.natal_chart.month_pillar)}
+              {pillarText(first.basis.natal_chart.month_pillar)}
             </Descriptions.Item>
             <Descriptions.Item label="일주">
-              {pillarText(result.basis.natal_chart.day_pillar)}
+              {pillarText(first.basis.natal_chart.day_pillar)}
             </Descriptions.Item>
             <Descriptions.Item label="시주">
-              {pillarText(result.basis.natal_chart.hour_pillar)}
+              {pillarText(first.basis.natal_chart.hour_pillar)}
             </Descriptions.Item>
             <Descriptions.Item label="일간">
-              {result.basis.natal_chart.day_master.name}(
-              {result.basis.natal_chart.day_master.hanja}) ·{" "}
-              {result.basis.natal_chart.day_master.element}
+              {first.basis.natal_chart.day_master.name}(
+              {first.basis.natal_chart.day_master.hanja}) ·{" "}
+              {first.basis.natal_chart.day_master.element}
             </Descriptions.Item>
             <Descriptions.Item label="띠">
-              {result.basis.natal_chart.zodiac_animal}띠
+              {first.basis.natal_chart.zodiac_animal}띠
             </Descriptions.Item>
             <Descriptions.Item label="오늘의 일진" span={2}>
-              {result.basis.today.name}({result.basis.today.hanja}) · 60갑자{" "}
-              {result.basis.today.cycle_index}번째
+              {first.basis.today.name}({first.basis.today.hanja}) · 60갑자{" "}
+              {first.basis.today.cycle_index}번째
             </Descriptions.Item>
           </Descriptions>
           <Row gutter={[16, 4]} style={{ marginTop: 8 }}>
-            {Object.entries(result.basis.five_elements).map(([key, percent]) => (
+            {Object.entries(first.basis.five_elements).map(([key, percent]) => (
               <Col key={key} flex="1 1 120px">
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   {ELEMENT_LABELS[key]?.label ?? key}
@@ -418,20 +450,20 @@ export default function DaliFortuneTestPage() {
         </Card>
       )}
 
-      {result && (
+      {first && (
         <Collapse
           items={[
             {
               key: "engine",
               label: (
                 <Space>
-                  사주 엔진 입력 (LLM 에 전달되는 JSON)
-                  {result.fortune === null && <Tag>엔진 입력만 실행됨</Tag>}
+                  사주 엔진 입력 (LLM 에 전달되는 JSON — 첫날)
+                  {first.fortune === null && <Tag>엔진 입력만 실행됨</Tag>}
                 </Space>
               ),
               children: (
                 <pre style={{ margin: 0, maxHeight: 480, overflow: "auto" }}>
-                  {JSON.stringify(result.engine_input, null, 2)}
+                  {JSON.stringify(first.engine_input, null, 2)}
                 </pre>
               ),
             },

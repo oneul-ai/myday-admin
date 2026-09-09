@@ -357,6 +357,20 @@ export interface FortuneBasis {
   five_elements: Record<"wood" | "fire" | "earth" | "metal" | "water", number>;
 }
 
+// LLM 호출 토큰 사용량 (프로바이더가 주는 값). reasoning_tokens 는 있을 때만.
+export interface LLMUsage {
+  prompt_tokens: number | null;
+  completion_tokens: number | null;
+  total_tokens: number | null;
+  reasoning_tokens?: number | null;
+}
+
+export interface FortuneRunUsage {
+  brief: LLMUsage | null;
+  editor: LLMUsage | null;
+  total_tokens: number;
+}
+
 export interface FortuneTestRun {
   target_date: string;
   engine_input: Record<string, unknown>;
@@ -367,6 +381,7 @@ export interface FortuneTestRun {
   brief_latency_ms: number;
   fortune: FortuneResult | null;
   latency_ms: number; // 브리프 + 에디터 합산
+  usage?: FortuneRunUsage | null; // 토큰 사용량 (구버전 API 는 없음)
 }
 
 export interface FortuneTestResponse {
@@ -379,6 +394,7 @@ export interface FortuneTestResponse {
   model_id: string | null;
   brief_model_id?: string | null;
   latency_ms: number;
+  usage?: FortuneRunUsage | null; // 첫날 토큰 사용량
   runs?: FortuneTestRun[];
   system_prompt_sent?: string; // 실제 전송된 에디터 프롬프트 (언어 블록 포함)
   brief_system_prompt_sent?: string; // 실제 전송된 브리프 프롬프트

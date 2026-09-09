@@ -27,6 +27,7 @@ import { getUsers, type User } from "../api/users";
 import {
   FORTUNE_CATEGORY_KEYS,
   FORTUNE_CATEGORY_LABELS,
+  type LLMUsage,
   type FortuneBrief,
   type FortuneUserContext,
   type FortuneHistoryEntry,
@@ -78,6 +79,20 @@ const ELEMENT_LABELS: Record<string, { label: string; color: string }> = {
   metal: { label: "금(金)", color: "#8c8c8c" },
   water: { label: "수(水)", color: "#1677ff" },
 };
+
+function formatTokens(n: number | null | undefined) {
+  if (n === null || n === undefined) return "-";
+  return n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);
+}
+
+function usageText(usage: LLMUsage | null | undefined) {
+  if (!usage) return "-";
+  const reasoning =
+    usage.reasoning_tokens !== undefined && usage.reasoning_tokens !== null
+      ? ` (추론 ${formatTokens(usage.reasoning_tokens)})`
+      : "";
+  return `입력 ${formatTokens(usage.prompt_tokens)} + 출력 ${formatTokens(usage.completion_tokens)}${reasoning} = ${formatTokens(usage.total_tokens)}`;
+}
 
 function pillarText(pillar: FortunePillar | null) {
   return pillar ? `${pillar.name}(${pillar.hanja})` : "-";
@@ -340,6 +355,10 @@ function ZodiacView({ zodiac }: { zodiac: ZodiacDetail }) {
   );
 }
 
+function result_model_label(_run: FortuneTestRun, stage: "brief" | "editor") {
+  return stage === "brief" ? "1단계" : "2단계";
+}
+
 function RunMaterial({ run }: { run: FortuneTestRun }) {
   const zodiac = readZodiac(run.engine_input);
   return (
@@ -348,7 +367,10 @@ function RunMaterial({ run }: { run: FortuneTestRun }) {
       title={`${run.target_date} — 1단계 브리프 (사주 → 연출 방향) · 히스토리`}
       extra={
         run.brief && (
-          <Typography.Text type="secondary">브리프 {run.brief_latency_ms}ms</Typography.Text>
+          <Typography.Text type="secondary">
+            브리프 {run.brief_latency_ms}ms
+            {run.usage && ` · 토큰 브리프 ${formatTokens(run.usage.brief?.total_tokens)} / 에디터 ${formatTokens(run.usage.editor?.total_tokens)}`}
+          </Typography.Text>
         )
       }
       style={{ marginBottom: 16 }}
@@ -375,6 +397,13 @@ function RunMaterial({ run }: { run: FortuneTestRun }) {
         </div>
       )}
       <Descriptions column={1} size="small" style={{ marginTop: 8 }}>
+        {run.usage && (
+          <Descriptions.Item label="토큰 사용량">
+            브리프({result_model_label(run, "brief")}): {usageText(run.usage.brief)} · 에디터(
+            {result_model_label(run, "editor")}): {usageText(run.usage.editor)} · 합계{" "}
+            {formatTokens(run.usage.total_tokens)}
+          </Descriptions.Item>
+        )}
         <Descriptions.Item label="recent_fortunes">
           <HistoryList entries={run.recent_fortunes} />
         </Descriptions.Item>
@@ -583,6 +612,7 @@ export default function DaliFortuneTestPage() {
             brief_latency_ms: 0,
             fortune: result.fortune,
             latency_ms: result.latency_ms,
+            usage: result.usage ?? null,
           },
         ]
       : []);
@@ -813,6 +843,7 @@ export default function DaliFortuneTestPage() {
               extra={
                 <Typography.Text type="secondary">
                   {result?.brief_model_id ?? "…"} → {result?.model_id} · {run.latency_ms}ms
+                  {run.usage && ` · ${formatTokens(run.usage.total_tokens)} 토큰`}
                 </Typography.Text>
               }
             />

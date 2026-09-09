@@ -176,6 +176,18 @@ export async function recommendQuote(body: DaliRecommendQuoteRequest) {
 
 // ── 사주 기반 오늘의 운세 테스트 ──────────────────────────────────
 
+export interface FortuneProvidersResponse {
+  model_id: string;
+  default_system_prompt: string;
+  response_schema: Record<string, unknown>;
+  headline_forms: string[]; // 날짜·일간으로 회전하는 헤드라인 형식 목록
+}
+
+export async function getFortuneProviders() {
+  const { data } = await client.get<FortuneProvidersResponse>("/dali/fortune/providers");
+  return data;
+}
+
 export interface FortuneTestRequest {
   birth_date: string; // YYYY-MM-DD
   birth_time?: string | null; // HH:MM, 생시 미상이면 null
@@ -184,6 +196,7 @@ export interface FortuneTestRequest {
   target_date?: string; // 기본: 오늘(KST)
   language?: string; // 기본: ko
   engine_only?: boolean; // true 면 LLM 없이 사주 엔진 입력만
+  system_prompt?: string; // 기본 프롬프트 본문 대신 쓸 오버라이드 (언어 블록은 서버가 붙임)
   recent_fortunes?: FortuneHistoryEntry[]; // 첫날에 넘길 히스토리 (선택)
   chain_days?: number; // 1~7. 2 이상이면 하루씩 이어 생성하며 앞선 결과를 히스토리로 넘김
 }
@@ -272,6 +285,7 @@ export interface FortuneTestResponse {
   model_id: string | null;
   latency_ms: number;
   runs?: FortuneTestRun[]; // 구버전 API 는 없음
+  system_prompt_sent?: string; // 실제 전송된 시스템 프롬프트 (언어 블록 포함)
 }
 
 export async function testFortune(body: FortuneTestRequest) {

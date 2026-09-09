@@ -8,6 +8,7 @@ import {
   DatePicker,
   Descriptions,
   Form,
+  Input,
   InputNumber,
   Progress,
   Row,
@@ -18,7 +19,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { type Dayjs } from "dayjs";
 import {
   type FortuneHistoryEntry,
@@ -26,6 +27,7 @@ import {
   type FortuneResult,
   type FortuneTestResponse,
   type FortuneTestRun,
+  getFortuneProviders,
   testFortune,
 } from "../api/dali";
 
@@ -255,6 +257,16 @@ function RunMaterial({ run }: { run: FortuneTestRun }) {
 export default function DaliFortuneTestPage() {
   const [form] = Form.useForm<FormValues>();
   const [result, setResult] = useState<FortuneTestResponse | null>(null);
+  // null 이면 서버 기본 프롬프트를 그대로 쓴다 (요청에 system_prompt 를 싣지 않음).
+  const [systemPromptOverride, setSystemPromptOverride] = useState<string | null>(null);
+
+  const { data: providers, isLoading: providersLoading } = useQuery({
+    queryKey: ["dali-fortune-providers"],
+    queryFn: getFortuneProviders,
+  });
+  const defaultPrompt = providers?.default_system_prompt ?? "";
+  const systemPrompt = systemPromptOverride ?? defaultPrompt;
+  const promptModified = systemPromptOverride !== null && systemPromptOverride !== defaultPrompt;
 
   const runMutation = useMutation({
     mutationFn: testFortune,
@@ -278,6 +290,7 @@ export default function DaliFortuneTestPage() {
       language: values.language,
       engine_only: values.engine_only,
       chain_days: values.chain_days,
+      system_prompt: promptModified ? systemPrompt : undefined,
     });
   };
 
@@ -380,6 +393,53 @@ export default function DaliFortuneTestPage() {
         </Form>
       </Card>
 
+      <Collapse
+        style={{ marginBottom: 16 }}
+        items={[
+          {
+            key: "prompt",
+            label: (
+              <Space>
+                시스템 프롬프트
+                {promptModified ? (
+                  <Tag color="orange">수정됨 — 이 실행에만 적용</Tag>
+                ) : (
+                  <Tag>서버 기본값</Tag>
+                )}
+              </Space>
+            ),
+            extra: promptModified && (
+              <Button
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSystemPromptOverride(null);
+                }}
+              >
+                기본값으로 되돌리기
+              </Button>
+            ),
+            children: (
+              <Space direction="vertical" style={{ width: "100%" }} size={8}>
+                <Typography.Text type="secondary">
+                  편집한 본문이 기본 프롬프트 대신 전송됩니다. 출력 언어 블록(# Output
+                  Language)은 서버가 항상 뒤에 붙이므로 여기 쓰지 않아도 됩니다. 실서비스
+                  프롬프트는 바뀌지 않습니다 — 마음에 드는 버전은 코드
+                  (app/services/fortune.py)에 반영해야 합니다.
+                </Typography.Text>
+                <Input.TextArea
+                  value={systemPrompt}
+                  disabled={providersLoading}
+                  onChange={(e) => setSystemPromptOverride(e.target.value)}
+                  autoSize={{ minRows: 12, maxRows: 40 }}
+                  style={{ fontFamily: "monospace", fontSize: 12 }}
+                />
+              </Space>
+            ),
+          },
+        ]}
+      />
+
       {runs.map((run, index) => (
         <div key={run.target_date || index}>
           {run.fortune && (
@@ -453,6 +513,22 @@ export default function DaliFortuneTestPage() {
       {first && (
         <Collapse
           items={[
+            ...(result?.system_prompt_sent
+              ? [
+                  {
+                    key: "prompt-sent",
+                    label: "실제 전송된 시스템 프롬프트 (언어 블록 포함)",
+                    children: (
+                      <Input.TextArea
+                        value={result.system_prompt_sent}
+                        readOnly
+                        autoSize={{ minRows: 6, maxRows: 24 }}
+                        style={{ fontFamily: "monospace", fontSize: 11 }}
+                      />
+                    ),
+                  },
+                ]
+              : []),
             {
               key: "engine",
               label: (

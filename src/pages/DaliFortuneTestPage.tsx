@@ -44,6 +44,8 @@ import {
 const FORTUNE_FALLBACK_MODELS = [
   { id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
   { id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
+  { id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+  { id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 ];
 
 const LANGUAGES = [

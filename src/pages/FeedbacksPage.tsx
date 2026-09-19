@@ -142,6 +142,13 @@ export default function FeedbacksPage() {
         ),
       },
       {
+        title: "회신 이메일",
+        dataIndex: "email",
+        width: 200,
+        ellipsis: true,
+        render: (e: string | null) => e ?? "-",
+      },
+      {
         title: "내용",
         dataIndex: "content",
         ellipsis: true,
@@ -283,6 +290,15 @@ export default function FeedbacksPage() {
                         {detail.user_uid}
                       </Typography.Text>
                     </Space>
+                  ),
+                },
+                {
+                  key: "email",
+                  label: "회신 이메일",
+                  children: detail.email ? (
+                    <Typography.Text copyable>{detail.email}</Typography.Text>
+                  ) : (
+                    "-"
                   ),
                 },
                 {

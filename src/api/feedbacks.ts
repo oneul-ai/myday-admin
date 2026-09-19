@@ -10,6 +10,8 @@ export interface Feedback {
   user_name: string | null;
   type: FeedbackType;
   content: string;
+  // 유저가 회신용으로 직접 입력한 이메일. 계정 이메일(user_email)과 다를 수 있다.
+  email: string | null;
   device_id: string | null;
   platform: string | null;
   app_version: string | null;

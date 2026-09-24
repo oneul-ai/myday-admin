@@ -887,7 +887,7 @@ export default function UserDetailPage() {
                   !r.live_activity_start_token &&
                   !r.live_activity_check_in_token &&
                   !r.live_activity_check_out_token &&
-                  !r.live_activity_task_token
+                  r.live_activity_tasks.length === 0
                 ) {
                   return <Tag>no token</Tag>;
                 }
@@ -961,9 +961,9 @@ export default function UserDetailPage() {
                         </Button>
                       </Popconfirm>
                     )}
-                    {r.live_activity_task_token && (
+                    {r.live_activity_tasks.length > 0 && (
                       <Popconfirm
-                        title={`Countdown Live Activity 종료(event:end) 푸시를 발송할까요? (task #${r.live_activity_task_id ?? "?"}) 업데이트 토큰은 발송 후 비워집니다.`}
+                        title={`Countdown Live Activity 종료(event:end) 푸시를 발송할까요? (task #${r.live_activity_tasks.map((c) => c.task_id).join(", #")}) 카드 전부가 종료되고 토큰은 발송 후 지워집니다.`}
                         okText="발송"
                         cancelText="취소"
                         onConfirm={() =>
@@ -971,7 +971,7 @@ export default function UserDetailPage() {
                         }
                       >
                         <Button size="small" danger loading={liveActivityTestMutation.isPending}>
-                          Countdown End
+                          Countdown End ({r.live_activity_tasks.length})
                         </Button>
                       </Popconfirm>
                     )}

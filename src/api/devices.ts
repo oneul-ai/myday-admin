@@ -10,9 +10,8 @@ export interface Device {
   // 실행 중인 Live Activity 의 활동별 업데이트 토큰 — 종료 테스트용
   live_activity_check_in_token: string | null;
   live_activity_check_out_token: string | null;
-  // 카운트다운 카드의 업데이트 토큰과 대상 task id (종료 시 쌍으로 비워진다)
-  live_activity_task_token: string | null;
-  live_activity_task_id: number | null;
+  // 기기에 떠 있는 카운트다운 카드(할 일별 1행)의 업데이트 토큰 — 종료 시 행이 지워진다.
+  live_activity_tasks: { task_id: number; token: string }[];
   // 잠금화면(Live Activity) 노출 설정 — 알림과 달리 유저가 아니라 기기 단위다.
   // null 은 '미설정'(토글을 만진 적 없거나 Live Activity 미사용 기기) = 켜짐 취급.
   live_activity_check_in_out_enabled: boolean | null;

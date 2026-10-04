@@ -96,10 +96,13 @@ export async function backfillTransactions(originalTransactionIds?: string[]) {
   return data;
 }
 
-/** 밀리단위 금액을 통화 표기로. 통화를 모르면 숫자만. */
+/**
+ * 밀리단위 금액을 통화 표기로. Apple 의 price 는 통화 단위 × 1,000 이다
+ * (예: 39000000 = ₩39,000, 3990 = $3.99). 통화를 모르면 숫자만.
+ */
 export function formatMilliunits(milliunits: number | null, currency: string | null): string {
   if (milliunits === null || milliunits === undefined) return "-";
-  const amount = milliunits / 1_000_000;
+  const amount = milliunits / 1_000;
   if (!currency) return amount.toLocaleString();
   try {
     return new Intl.NumberFormat(undefined, { style: "currency", currency }).format(amount);

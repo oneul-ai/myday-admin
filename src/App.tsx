@@ -11,6 +11,7 @@ import DashboardPage from "./pages/DashboardPage";
 import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import UserAuthMigrationPage from "./pages/UserAuthMigrationPage";
+import AppStoreTransactionsPage from "./pages/AppStoreTransactionsPage";
 import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
 import HabitPresetsPage from "./pages/HabitPresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
@@ -81,6 +82,14 @@ export default function App() {
                     element={
                       <SuperAdminRoute>
                         <UserAuthMigrationPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/app-store"
+                    element={
+                      <SuperAdminRoute>
+                        <AppStoreTransactionsPage />
                       </SuperAdminRoute>
                     }
                   />

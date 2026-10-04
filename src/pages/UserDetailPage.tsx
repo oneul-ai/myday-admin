@@ -327,11 +327,12 @@ import GoogleCalendarFetchTestModal from "../components/GoogleCalendarFetchTestM
 import { getUserEvents } from "../api/schedules";
 import { getUserRepeatTasks, type RepeatTask } from "../api/routines";
 import { useMe } from "../auth/useMe";
+import AppStoreTransactionsTable from "../components/AppStoreTransactionsTable";
 import { LOCALE_LABELS } from "../constants/locales";
 import dayjs from "dayjs";
 import { useState } from "react";
 
-const SUPER_ADMIN_ONLY_TABS = new Set(["tasks", "calendars", "schedules", "routines"]);
+const SUPER_ADMIN_ONLY_TABS = new Set(["tasks", "calendars", "schedules", "routines", "payments"]);
 
 export default function UserDetailPage() {
   const { uid } = useParams<{ uid: string }>();
@@ -801,6 +802,19 @@ export default function UserDetailPage() {
             },
           ]}
         />
+      ),
+    },
+    {
+      key: "payments",
+      label: "App Store 결제",
+      children: (
+        <>
+          <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+            이 유저의 결제 원장 (구독 갱신·환불 회차별 1행). 유저가 매칭되지 않은 결제는 여기
+            보이지 않으니, 비어 있으면 App Store 결제 페이지에서 미해결 건을 확인하세요.
+          </Typography.Paragraph>
+          <AppStoreTransactionsTable filters={{ user_uid: user.uid }} showUserColumn={false} />
+        </>
       ),
     },
     {

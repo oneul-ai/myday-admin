@@ -20,6 +20,7 @@ export interface SourceDbRow {
     devices: number;
     integrations: number;
     app_store_purchases: number;
+    app_store_transactions: number;
   };
 }
 

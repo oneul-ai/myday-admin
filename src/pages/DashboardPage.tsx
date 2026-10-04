@@ -67,7 +67,11 @@ export default function DashboardPage() {
                   <Typography.Text type="secondary">비회원</Typography.Text>
                 ),
             },
-            { title: "Plan", dataIndex: "plan" },
+            {
+              title: "Plan",
+              dataIndex: "plan",
+              render: (plan: string) => plan?.toUpperCase(),
+            },
             {
               title: "Joined",
               dataIndex: "joined_at",

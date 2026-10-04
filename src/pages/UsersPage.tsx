@@ -109,7 +109,7 @@ export default function UsersPage() {
         const color = plan?.toUpperCase() === "FREE" ? "blue" : "purple";
         return (
           <Space size={4}>
-            <Tag color={color}>{plan}</Tag>
+            <Tag color={color}>{plan?.toUpperCase()}</Tag>
             {row.is_tester && <Tag color="gold">테스터</Tag>}
           </Space>
         );

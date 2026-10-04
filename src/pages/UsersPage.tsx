@@ -106,7 +106,7 @@ export default function UsersPage() {
       dataIndex: "plan",
       width: 150,
       render: (plan: string, row: User) => {
-        const color = plan?.toUpperCase() === "FREE" ? "default" : "blue";
+        const color = plan?.toUpperCase() === "FREE" ? "blue" : "purple";
         return (
           <Space size={4}>
             <Tag color={color}>{plan}</Tag>

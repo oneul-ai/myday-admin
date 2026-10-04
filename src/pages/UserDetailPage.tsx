@@ -1043,7 +1043,7 @@ export default function UserDetailPage() {
           <Descriptions.Item label="Email">{user.email}</Descriptions.Item>
           <Descriptions.Item label="Provider">{user.provider ?? "-"}</Descriptions.Item>
           <Descriptions.Item label="Plan">
-            <Tag color={user.plan?.toUpperCase() === "FREE" ? "default" : "blue"}>{user.plan}</Tag>
+            <Tag color={user.plan?.toUpperCase() === "FREE" ? "blue" : "purple"}>{user.plan}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Tester">
             {user.is_tester ? <Tag color="gold">테스터</Tag> : <Tag>일반</Tag>}

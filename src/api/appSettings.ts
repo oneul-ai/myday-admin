@@ -159,6 +159,23 @@ export interface PaywallCampaign {
   storefronts: string[] | null;
   min_app_version: string | null;
   max_app_version: string | null;
+  /** 마이 탭 PLUS 유도 배너 설정. null 이면 배너 없음. */
+  banner: PaywallBanner | null;
+}
+
+export interface PaywallBannerLocalization {
+  title: string | null;
+  subtitle: string | null;
+}
+
+/** 마이 탭 배너 — days_before_end 가 null 이면 캠페인 기간 내내, n 이면 마감 n일 전부터 노출.
+ * title/subtitle 은 ko 기본값이고 비우면 앱 기본 문구. {percent}·{deadline} 자리표시자를 쓸 수 있다. */
+export interface PaywallBanner {
+  enabled: boolean;
+  days_before_end: number | null;
+  title: string | null;
+  subtitle: string | null;
+  localizations: Record<string, PaywallBannerLocalization>;
 }
 
 export interface PaywallCampaignList {

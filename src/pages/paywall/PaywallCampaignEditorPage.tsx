@@ -5,6 +5,7 @@ import {
   DatePicker,
   Form,
   Input,
+  InputNumber,
   Select,
   Space,
   Switch,
@@ -18,23 +19,55 @@ import { useNavigate, useParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
 import {
   PAYWALL_BADGE_OPTIONS,
+  type PaywallBanner,
   type PaywallCampaign,
   getPaywallCampaigns,
   upsertPaywallCampaign,
 } from "../../api/appSettings";
+import { OVERRIDE_LOCALES } from "../../constants/locales";
 
 // Form 에서는 기간을 DatePicker 값(Dayjs)으로 다루고 저장 시 offset 포함
 // ISO 8601 로 보낸다. offset 은 이 브라우저의 시간대 — 서울에서 쓰면 +09:00 이며
 // 한국·일본 스토어 모두 같은 시간대라 그대로 쓴다. 저장되는 값은 피커 아래에 표시한다.
 type CampaignFormValues = Omit<
   PaywallCampaign,
-  "id" | "starts_at" | "ends_at" | "storefronts"
+  "id" | "starts_at" | "ends_at" | "storefronts" | "banner"
 > & {
   id?: string;
   starts_at: Dayjs | null;
   ends_at: Dayjs | null;
   storefronts: string[];
+  /** 폼에서는 모든 언어 필드를 노출하므로 빈 문자열이 섞인 partial 형태 — 저장 시 정리한다. */
+  banner: {
+    enabled: boolean;
+    days_before_end: number | null;
+    title?: string | null;
+    subtitle?: string | null;
+    localizations: Record<string, { title?: string | null; subtitle?: string | null } | undefined>;
+  };
 };
+
+/** 폼의 배너 값 → 서버 포맷. 켜져 있지 않고 문구도 없으면 null(배너 없음). */
+function toBannerPayload(values: CampaignFormValues["banner"]): PaywallBanner | null {
+  const localizations: PaywallBanner["localizations"] = {};
+  for (const { code } of OVERRIDE_LOCALES) {
+    const entry = values.localizations?.[code];
+    if (entry?.title || entry?.subtitle) {
+      localizations[code] = { title: entry.title || null, subtitle: entry.subtitle || null };
+    }
+  }
+  const banner: PaywallBanner = {
+    enabled: values.enabled,
+    days_before_end: values.days_before_end ?? null,
+    title: values.title?.trim() || null,
+    subtitle: values.subtitle?.trim() || null,
+    localizations,
+  };
+  const isEmpty =
+    !banner.enabled && banner.days_before_end === null && !banner.title && !banner.subtitle
+    && Object.keys(localizations).length === 0;
+  return isEmpty ? null : banner;
+}
 
 // 자주 쓰는 스토어프론트 — 자유 입력도 허용한다(ISO 3166-1 alpha-3 대문자).
 const STOREFRONT_PRESETS = [
@@ -102,6 +135,7 @@ function CampaignForm({
         storefronts: values.storefronts?.length ? values.storefronts : null,
         min_app_version: values.min_app_version || null,
         max_app_version: values.max_app_version || null,
+        banner: toBannerPayload(values.banner),
       },
     });
   };
@@ -125,12 +159,14 @@ function CampaignForm({
               storefronts: campaign.storefronts ?? [],
               starts_at: campaign.starts_at ? dayjs(campaign.starts_at) : null,
               ends_at: campaign.ends_at ? dayjs(campaign.ends_at) : null,
+              banner: campaign.banner ?? { enabled: false, days_before_end: null, localizations: {} },
             }
           : {
               enabled: false,
               storefronts: [],
               starts_at: null,
               ends_at: null,
+              banner: { enabled: false, days_before_end: null, localizations: {} },
             }
       }
     >
@@ -245,6 +281,44 @@ function CampaignForm({
           }
         />
       </Form.Item>
+
+      <Typography.Title level={5} style={{ marginTop: 24 }}>
+        마이 탭 배너 (옵셔널)
+      </Typography.Title>
+      <Typography.Paragraph type="secondary">
+        FREE·게스트의 마이 탭 프로필 아래에 뜨는 PLUS 유도 배너예요. 켜면 캠페인 기간 안에서 노출되고,
+        &quot;마감 n일 전부터&quot;를 두면 그때부터만 보여요. 문구를 비우면 앱 기본 문구(배지 종류별 &quot;얼리버드 45% 할인&quot; /
+        &quot;11/30까지 구독하면 평생 이 가격으로&quot;)를 쓰고, 직접 쓸 때는 <Typography.Text code>{"{percent}"}</Typography.Text>
+        (월간 대비 할인율)·<Typography.Text code>{"{deadline}"}</Typography.Text>(마감 M/d) 자리표시자를 넣을 수 있어요.
+      </Typography.Paragraph>
+      <Space size="large" align="start" wrap>
+        <Form.Item name={["banner", "enabled"]} label="배너 노출" valuePropName="checked">
+          <Switch />
+        </Form.Item>
+        <Form.Item
+          name={["banner", "days_before_end"]}
+          label="마감 n일 전부터"
+          extra="비우면 캠페인 기간 내내 노출. 종료 일시가 없는 캠페인에는 적용되지 않아요."
+        >
+          <InputNumber min={1} max={365} placeholder="예: 7" style={{ width: 120 }} />
+        </Form.Item>
+      </Space>
+      <Form.Item name={["banner", "title"]} label="제목 (기본 · 한국어)">
+        <Input placeholder="얼리버드 {percent}% 할인" />
+      </Form.Item>
+      <Form.Item name={["banner", "subtitle"]} label="부제 (기본 · 한국어)">
+        <Input placeholder="{deadline}까지 구독하면 평생 이 가격으로" />
+      </Form.Item>
+      {OVERRIDE_LOCALES.map(({ code, label }) => (
+        <Card size="small" title={`배너 문구 · ${label}`} key={code} style={{ marginBottom: 12 }}>
+          <Form.Item name={["banner", "localizations", code, "title"]} label="제목">
+            <Input placeholder="비우면 기본(한국어) 문구" />
+          </Form.Item>
+          <Form.Item name={["banner", "localizations", code, "subtitle"]} label="부제" style={{ marginBottom: 0 }}>
+            <Input placeholder="비우면 기본(한국어) 문구" />
+          </Form.Item>
+        </Card>
+      ))}
 
       <Typography.Title level={5} style={{ marginTop: 24 }}>
         앱 버전 조건 (옵셔널)

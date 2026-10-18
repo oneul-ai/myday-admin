@@ -155,6 +155,19 @@ export default function PaywallCampaignListPage() {
           ),
       },
       {
+        title: "마이 탭 배너",
+        key: "banner",
+        width: 130,
+        render: (_: unknown, row: PaywallCampaign) =>
+          row.banner?.enabled ? (
+            <Tag color="purple">
+              {row.banner.days_before_end ? `마감 ${row.banner.days_before_end}일 전부터` : "기간 내내"}
+            </Tag>
+          ) : (
+            <Typography.Text type="secondary">—</Typography.Text>
+          ),
+      },
+      {
         title: "앱 버전",
         key: "versions",
         width: 130,

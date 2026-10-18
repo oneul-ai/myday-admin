@@ -18,6 +18,7 @@ import {
   MailOutlined,
   SwapOutlined,
   CreditCardOutlined,
+  PercentageOutlined,
 } from "@ant-design/icons";
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
@@ -37,6 +38,7 @@ const baseMenuItems = [
   { key: "/feedbacks", icon: <MessageOutlined />, label: "Feedbacks" },
   { key: "/ad-settings", icon: <NotificationOutlined />, label: "광고 배너" },
   { key: "/marketing-in-app", icon: <GiftOutlined />, label: "인앱 메시지" },
+  { key: "/paywall", icon: <PercentageOutlined />, label: "페이월 캠페인" },
   { key: "/app-links", icon: <LinkOutlined />, label: "앱 링크" },
   { key: "/remote-config", icon: <ControlOutlined />, label: "Remote Config" },
   { key: "/blog-posts", icon: <ReadOutlined />, label: "블로그" },

@@ -40,6 +40,8 @@ export interface TransactionsResponse {
 export interface ListTransactionsParams {
   user_uid?: string;
   original_transaction_id?: string;
+  /** 상품 id — 캠페인(할인 연간 상품)별 결제를 볼 때. */
+  product_id?: string;
   environment?: string;
   offset?: number;
   limit?: number;

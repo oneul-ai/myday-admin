@@ -40,7 +40,12 @@ export default function AppStoreTransactionsPage() {
   const [environment, setEnvironment] = useState<Environment>("Production");
   const [uidInput, setUidInput] = useState("");
   const [otidInput, setOtidInput] = useState("");
-  const [filters, setFilters] = useState<{ user_uid?: string; original_transaction_id?: string }>({});
+  const [productInput, setProductInput] = useState("");
+  const [filters, setFilters] = useState<{
+    user_uid?: string;
+    original_transaction_id?: string;
+    product_id?: string;
+  }>({});
   const [backfillResult, setBackfillResult] = useState<BackfillResult | null>(null);
 
   const { data: summary, isLoading: summaryLoading } = useQuery({
@@ -75,6 +80,7 @@ export default function AppStoreTransactionsPage() {
     setFilters({
       user_uid: uidInput.trim() || undefined,
       original_transaction_id: otidInput.trim() || undefined,
+      product_id: productInput.trim() || undefined,
     });
 
   const summaryColumns = [
@@ -175,6 +181,15 @@ export default function AppStoreTransactionsPage() {
               style={{ width: 200 }}
               value={otidInput}
               onChange={(e) => setOtidInput(e.target.value)}
+              onPressEnter={applyFilters}
+            />
+            <Input
+              size="small"
+              placeholder="상품 ID (예: myday_plus_yearly_earlybird)"
+              allowClear
+              style={{ width: 260 }}
+              value={productInput}
+              onChange={(e) => setProductInput(e.target.value)}
               onPressEnter={applyFilters}
             />
             <Button size="small" onClick={applyFilters}>

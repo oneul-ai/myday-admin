@@ -22,6 +22,8 @@ import AppLinksPage from "./pages/AppLinksPage";
 import RemoteConfigPage from "./pages/RemoteConfigPage";
 import MarketingInAppListPage from "./pages/marketingInApp/MarketingInAppListPage";
 import MarketingInAppEditorPage from "./pages/marketingInApp/MarketingInAppEditorPage";
+import PaywallCampaignListPage from "./pages/paywall/PaywallCampaignListPage";
+import PaywallCampaignEditorPage from "./pages/paywall/PaywallCampaignEditorPage";
 import DaliTaskRecommendPage from "./pages/DaliTaskRecommendPage";
 import DaliGreetingRecommendPage from "./pages/DaliGreetingRecommendPage";
 import DaliQuoteRecommendPage from "./pages/DaliQuoteRecommendPage";
@@ -111,6 +113,12 @@ export default function App() {
                   <Route
                     path="/marketing-in-app/:campaignId"
                     element={<MarketingInAppEditorPage />}
+                  />
+                  <Route path="/paywall" element={<PaywallCampaignListPage />} />
+                  <Route path="/paywall/new" element={<PaywallCampaignEditorPage />} />
+                  <Route
+                    path="/paywall/:campaignId"
+                    element={<PaywallCampaignEditorPage />}
                   />
                   <Route path="/app-links" element={<AppLinksPage />} />
                   <Route path="/remote-config" element={<RemoteConfigPage />} />

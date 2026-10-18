@@ -132,3 +132,59 @@ export async function updateAppLinksSettings(body: Partial<AppLinksSettings>) {
   );
   return data;
 }
+
+/** 페이월 캠페인 — 연간 할인 이벤트. 할인가는 App Store 의 별도 연간 상품으로 구현하고,
+ * 그 상품을 "언제·어느 스토어에" 보여줄지를 이 설정이 정한다 (myday-api docs/paywall-campaigns.md).
+ * 서버 리스트 순서가 곧 우선순위 — 클라이언트는 자기 스토어프론트에 맞는 첫 캠페인을 쓴다. */
+export type PaywallBadge = "earlybird" | "newyear";
+
+export const PAYWALL_BADGE_OPTIONS: { value: PaywallBadge; label: string }[] = [
+  { value: "earlybird", label: "얼리버드" },
+  { value: "newyear", label: "새해 이벤트" },
+];
+
+export interface PaywallCampaign {
+  id: string;
+  enabled: boolean;
+  /** 어드민 메모 — 클라이언트에 내려가지 않는다. */
+  name: string | null;
+  /** App Store Connect 의 할인 연간 상품 id (예: myday_plus_yearly_earlybird). */
+  yearly_product_id: string | null;
+  /** 배지 종류 — 문구·색은 앱 리소스. */
+  badge: PaywallBadge | null;
+  /** ISO 8601 (offset 포함). null 이면 그쪽 경계 없음. */
+  starts_at: string | null;
+  ends_at: string | null;
+  /** ISO 3166-1 alpha-3 스토어프론트 리스트 (예: ["KOR","JPN"]). null 이면 전체 스토어. */
+  storefronts: string[] | null;
+  min_app_version: string | null;
+  max_app_version: string | null;
+}
+
+export interface PaywallCampaignList {
+  campaigns: PaywallCampaign[];
+}
+
+export async function getPaywallCampaigns() {
+  const { data } = await client.get<PaywallCampaignList>("/app-settings/paywall");
+  return data;
+}
+
+/** id 기준 부분 갱신 — 없으면 생성(맨 뒤에 추가). position(0-base)으로 우선순위 이동. */
+export async function upsertPaywallCampaign(
+  id: string,
+  body: Partial<Omit<PaywallCampaign, "id">> & { position?: number },
+) {
+  const { data } = await client.put<PaywallCampaignList>(
+    `/app-settings/paywall/${encodeURIComponent(id)}`,
+    body,
+  );
+  return data;
+}
+
+export async function deletePaywallCampaign(id: string) {
+  const { data } = await client.delete<PaywallCampaignList>(
+    `/app-settings/paywall/${encodeURIComponent(id)}`,
+  );
+  return data;
+}

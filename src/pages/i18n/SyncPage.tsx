@@ -3,6 +3,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Collapse,
   Empty,
   Popconfirm,
@@ -22,6 +23,7 @@ import {
   syncApply,
   syncPreview,
   type I18nScope,
+  type NonKoChangedItem,
   type NonKoClearedItem,
   type SyncApplyResponse,
   type SyncPreviewResponse,
@@ -49,6 +51,8 @@ export default function SyncPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<SyncPreviewResponse | null>(null);
   const [applied, setApplied] = useState<SyncApplyResponse | null>(null);
+  // xcstrings 의 비-ko(en/ja…) 값을 CMS 에 반영할지 — preview 에 non_ko_changed 가 있을 때만 의미 있다.
+  const [applyNonKo, setApplyNonKo] = useState(true);
 
   const previewMutation = useMutation({
     mutationFn: ({ scope, file }: { scope: I18nScope; file: File }) =>
@@ -70,11 +74,13 @@ export default function SyncPage() {
       scope,
       file,
       force,
+      applyNonKo,
     }: {
       scope: I18nScope;
       file: File;
       force?: boolean;
-    }) => syncApply(scope, file, { force }),
+      applyNonKo?: boolean;
+    }) => syncApply(scope, file, { force, applyNonKo }),
     onSuccess: (data) => {
       setApplied(data);
       setPreview(null);
@@ -121,10 +127,11 @@ export default function SyncPage() {
 
   const onApplyClick = (force: boolean = false) => {
     if (!file) return;
-    applyMutation.mutate({ scope, file, force });
+    applyMutation.mutate({ scope, file, force, applyNonKo: !force && applyNonKo });
   };
 
   const removedCount = preview?.diff.removed.length ?? 0;
+  const nonKoChangedCount = preview?.diff.non_ko_changed.length ?? 0;
   const prunedCount = preview?.diff.pruned.length ?? 0;
   const forceTranslationDeleteRows = preview?.diff.force_translation_deletes ?? [];
   const forceTranslationDeleteTotal = forceTranslationDeleteRows.reduce(
@@ -170,6 +177,15 @@ export default function SyncPage() {
               Xcode 의 <Text code>Localizable.xcstrings</Text> 파일을 그대로 올리면 됩니다.
             </p>
           </Dragger>
+
+          {preview && nonKoChangedCount > 0 && (
+            <Checkbox
+              checked={applyNonKo}
+              onChange={(e) => setApplyNonKo(e.target.checked)}
+            >
+              xcstrings 의 비-ko 번역(en/ja 등) {nonKoChangedCount}건도 CMS 에 반영 (published 로 upsert, 삭제 없음 — Sync 확정에만 적용)
+            </Checkbox>
+          )}
 
           <Space>
             <Button
@@ -244,7 +260,8 @@ function PreviewSection({ preview }: { preview: SyncPreviewResponse }) {
       diff.description_changed.length +
       diff.ko_value_changed.length +
       diff.non_ko_cleared.length +
-      diff.force_translation_deletes.length >
+      diff.force_translation_deletes.length +
+      diff.non_ko_changed.length >
     0;
 
   return (
@@ -285,8 +302,22 @@ function PreviewSection({ preview }: { preview: SyncPreviewResponse }) {
             value={forceTranslationDeleteTotal}
             valueStyle={{ color: "#ff4d4f" }}
           />
+          <Statistic
+            title="non-ko 값 변경 (체크 시 반영)"
+            value={diff.non_ko_changed.length}
+            valueStyle={{ color: "#1677ff" }}
+          />
           <Statistic title="동일" value={diff.unchanged} />
         </Space>
+
+        {diff.non_ko_changed.length > 0 && (
+          <Alert
+            type="info"
+            showIcon
+            message="xcstrings 의 비-ko 번역이 CMS 와 다릅니다."
+            description={`${diff.non_ko_changed.length}건. 기본 Sync 는 비-ko 를 건드리지 않습니다 — 위 체크박스를 켜고 Sync 확정하면 파일 값이 published 로 반영됩니다 (ko 가 바뀐 키는 제외).`}
+          />
+        )}
 
         {diff.non_ko_cleared.length > 0 && (
           <Alert
@@ -374,6 +405,11 @@ function PreviewSection({ preview }: { preview: SyncPreviewResponse }) {
                   <NonKoClearedTable rows={diff.force_translation_deletes} />
                 ),
               },
+              diff.non_ko_changed.length > 0 && {
+                key: "non-ko-changed",
+                label: `non-ko 값 변경 ${diff.non_ko_changed.length}건 (체크 시 반영)`,
+                children: <NonKoChangedTable rows={diff.non_ko_changed} />,
+              },
             ].filter(Boolean) as { key: string; label: string; children: React.ReactNode }[]}
           />
         )}
@@ -395,6 +431,7 @@ function AppliedSection({ applied }: { applied: SyncApplyResponse }) {
     force_translations_deleted,
   } = applied.applied;
   const isForce = applied.force;
+  const appliedNonKo = isForce || applied.apply_non_ko === true;
   return (
     <Card>
       <Result
@@ -418,7 +455,7 @@ function AppliedSection({ applied }: { applied: SyncApplyResponse }) {
             />
             <Statistic title="description 갱신" value={updated} />
             <Statistic title="ko 번역 upsert" value={ko_upserted} />
-            {isForce && (
+            {appliedNonKo && (
               <Statistic
                 title="non-ko 번역 upsert"
                 value={non_ko_upserted}
@@ -516,6 +553,28 @@ function NonKoClearedTable({ rows }: { rows: NonKoClearedItem[] }) {
           dataIndex: "locales",
           render: (locales: string[]) => locales.join(", "),
         },
+      ]}
+    />
+  );
+}
+
+function NonKoChangedTable({ rows }: { rows: NonKoChangedItem[] }) {
+  return (
+    <Table
+      size="small"
+      rowKey={(r) => `${r.key}:${r.locale}`}
+      dataSource={rows}
+      pagination={{ pageSize: 20, showSizeChanger: false }}
+      columns={[
+        { title: "Key", dataIndex: "key", width: 280, ellipsis: true },
+        { title: "Locale", dataIndex: "locale", width: 90 },
+        {
+          title: "CMS (before)",
+          dataIndex: "old",
+          render: (v: string | null) =>
+            v ? v : <Text type="secondary">(없음)</Text>,
+        },
+        { title: "xcstrings (after)", dataIndex: "new" },
       ]}
     />
   );

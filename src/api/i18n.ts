@@ -56,6 +56,14 @@ export interface NonKoClearedItem {
   locales: string[];
 }
 
+// xcstrings 의 비-ko 값이 DB 와 다른 (key, locale). 일반 sync 에서 apply_non_ko 로 반영할 수 있다.
+export interface NonKoChangedItem {
+  key: string;
+  locale: string;
+  old: string | null;
+  new: string;
+}
+
 export interface SyncDiff {
   added: SyncDiffItem[];
   removed: SyncDiffItem[];
@@ -66,6 +74,8 @@ export interface SyncDiff {
   non_ko_cleared: NonKoClearedItem[];
   // force sync 시 hard delete 될 (key, locale) 번역. xcstrings 에 해당 locale 이 없음.
   force_translation_deletes: NonKoClearedItem[];
+  // xcstrings 비-ko 값 ≠ DB (ko 가 바뀐 키 제외). 기본 sync 는 무시, apply_non_ko 면 published 로 upsert.
+  non_ko_changed: NonKoChangedItem[];
   unchanged: number;
 }
 
@@ -78,6 +88,7 @@ export interface SyncPreviewResponse {
 export interface SyncApplyResponse {
   scope: I18nScope;
   force: boolean;
+  apply_non_ko?: boolean;
   applied: {
     added: number;
     resurrected: number;
@@ -94,12 +105,13 @@ export interface SyncApplyResponse {
 function buildSyncFormData(
   scope: I18nScope,
   file: File,
-  options?: { force?: boolean },
+  options?: { force?: boolean; applyNonKo?: boolean },
 ): FormData {
   const fd = new FormData();
   fd.append("scope", scope);
   fd.append("file", file);
   if (options?.force) fd.append("force", "true");
+  if (options?.applyNonKo) fd.append("apply_non_ko", "true");
   return fd;
 }
 
@@ -115,7 +127,7 @@ export async function syncPreview(scope: I18nScope, file: File) {
 export async function syncApply(
   scope: I18nScope,
   file: File,
-  options?: { force?: boolean },
+  options?: { force?: boolean; applyNonKo?: boolean },
 ) {
   const { data } = await client.post<SyncApplyResponse>(
     "/i18n/sync/apply",

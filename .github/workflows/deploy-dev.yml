@@ -37,3 +37,5 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_SIMPLRUN_FB_DEV }}
           channelId: live
           projectId: simplrun-fb-dev
+          # Pin firebase-tools so a new CLI release can't break deploys unannounced.
+          firebaseToolsVersion: 15.34.1

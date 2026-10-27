@@ -115,13 +115,34 @@ function buildSyncFormData(
   return fd;
 }
 
+// 배포가 덜 된 API 는 diff 에 새 필드(non_ko_changed 등)를 안 보낼 수 있다 — 빈 배열로 채워
+// 화면이 undefined.length 로 죽지 않게 한다.
+const SYNC_DIFF_LIST_FIELDS = [
+  "added",
+  "removed",
+  "pruned",
+  "description_changed",
+  "ko_value_changed",
+  "non_ko_cleared",
+  "force_translation_deletes",
+  "non_ko_changed",
+] as const;
+
+function normalizeSyncDiff(diff: Partial<SyncDiff> | undefined): SyncDiff {
+  const normalized = { ...diff, unchanged: diff?.unchanged ?? 0 } as SyncDiff;
+  for (const field of SYNC_DIFF_LIST_FIELDS) {
+    if (!Array.isArray(normalized[field])) normalized[field] = [];
+  }
+  return normalized;
+}
+
 export async function syncPreview(scope: I18nScope, file: File) {
   const { data } = await client.post<SyncPreviewResponse>(
     "/i18n/sync/preview",
     buildSyncFormData(scope, file),
     { headers: { "Content-Type": "multipart/form-data" } },
   );
-  return data;
+  return { ...data, diff: normalizeSyncDiff(data.diff) };
 }
 
 export async function syncApply(

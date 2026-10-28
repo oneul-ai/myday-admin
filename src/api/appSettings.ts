@@ -161,6 +161,14 @@ export interface PaywallCampaign {
   max_app_version: string | null;
   /** 마이 탭 PLUS 유도 배너 설정. null 이면 배너 없음. */
   banner: PaywallBanner | null;
+  /** 페이월 헤더 바로 아래 마케팅 문구. null 이면 문구 없음(앱이 줄을 감춘다). */
+  headline: PaywallHeadline | null;
+}
+
+/** 페이월 헤더 아래 마케팅 문구 — text 는 ko 기본값, localizations 는 {locale: text} 오버라이드. */
+export interface PaywallHeadline {
+  text: string | null;
+  localizations: Record<string, string>;
 }
 
 export interface PaywallBannerLocalization {

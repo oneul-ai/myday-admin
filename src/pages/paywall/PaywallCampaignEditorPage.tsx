@@ -21,6 +21,7 @@ import {
   PAYWALL_BADGE_OPTIONS,
   type PaywallBanner,
   type PaywallCampaign,
+  type PaywallHeadline,
   getPaywallCampaigns,
   upsertPaywallCampaign,
 } from "../../api/appSettings";
@@ -31,7 +32,7 @@ import { OVERRIDE_LOCALES } from "../../constants/locales";
 // 한국·일본 스토어 모두 같은 시간대라 그대로 쓴다. 저장되는 값은 피커 아래에 표시한다.
 type CampaignFormValues = Omit<
   PaywallCampaign,
-  "id" | "starts_at" | "ends_at" | "storefronts" | "banner"
+  "id" | "starts_at" | "ends_at" | "storefronts" | "banner" | "headline"
 > & {
   id?: string;
   starts_at: Dayjs | null;
@@ -45,7 +46,22 @@ type CampaignFormValues = Omit<
     subtitle?: string | null;
     localizations: Record<string, { title?: string | null; subtitle?: string | null } | undefined>;
   };
+  headline: {
+    text?: string | null;
+    localizations: Record<string, string | undefined>;
+  };
 };
+
+/** 폼의 헤더 문구 값 → 서버 포맷. 기본·언어별 문구가 모두 비면 null(문구 없음). */
+function toHeadlinePayload(values: CampaignFormValues["headline"]): PaywallHeadline | null {
+  const localizations: PaywallHeadline["localizations"] = {};
+  for (const { code } of OVERRIDE_LOCALES) {
+    const text = values.localizations?.[code]?.trim();
+    if (text) localizations[code] = text;
+  }
+  const text = values.text?.trim() || null;
+  return !text && Object.keys(localizations).length === 0 ? null : { text, localizations };
+}
 
 /** 폼의 배너 값 → 서버 포맷. 켜져 있지 않고 문구도 없으면 null(배너 없음). */
 function toBannerPayload(values: CampaignFormValues["banner"]): PaywallBanner | null {
@@ -136,6 +152,7 @@ function CampaignForm({
         min_app_version: values.min_app_version || null,
         max_app_version: values.max_app_version || null,
         banner: toBannerPayload(values.banner),
+        headline: toHeadlinePayload(values.headline),
       },
     });
   };
@@ -160,6 +177,7 @@ function CampaignForm({
               starts_at: campaign.starts_at ? dayjs(campaign.starts_at) : null,
               ends_at: campaign.ends_at ? dayjs(campaign.ends_at) : null,
               banner: campaign.banner ?? { enabled: false, days_before_end: null, localizations: {} },
+              headline: campaign.headline ?? { text: null, localizations: {} },
             }
           : {
               enabled: false,
@@ -167,6 +185,7 @@ function CampaignForm({
               starts_at: null,
               ends_at: null,
               banner: { enabled: false, days_before_end: null, localizations: {} },
+              headline: { text: null, localizations: {} },
             }
       }
     >
@@ -281,6 +300,22 @@ function CampaignForm({
           }
         />
       </Form.Item>
+
+      <Typography.Title level={5} style={{ marginTop: 24 }}>
+        페이월 헤더 문구 (옵셔널)
+      </Typography.Title>
+      <Typography.Paragraph type="secondary">
+        페이월 헤더(&quot;하루를 더 잘 챙겨주는 마이데이 PLUS&quot;) 바로 아래 빨간 마케팅 문구예요. 이 캠페인이 적용될 때만
+        보이고, 비우면 그 줄을 감춰요. 언어별 문구를 비우면 기본(한국어) 문구가 나가요.
+      </Typography.Paragraph>
+      <Form.Item name={["headline", "text"]} label="문구 (기본 · 한국어)">
+        <Input placeholder="지금만 만날 수 있는 특별한 가격이에요" />
+      </Form.Item>
+      {OVERRIDE_LOCALES.map(({ code, label }) => (
+        <Form.Item name={["headline", "localizations", code]} label={`문구 · ${label}`} key={code}>
+          <Input placeholder="비우면 기본(한국어) 문구" />
+        </Form.Item>
+      ))}
 
       <Typography.Title level={5} style={{ marginTop: 24 }}>
         마이 탭 배너 (옵셔널)

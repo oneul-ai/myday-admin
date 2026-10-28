@@ -391,3 +391,21 @@ export async function bulkPromoteDrafts(scope: I18nScope) {
   );
   return data;
 }
+
+export interface TranslateTextsResponse {
+  /** {이름: {locale: 번역}} — 모델이 빠뜨린 항목·locale 은 없다. */
+  translations: Record<string, Record<string, string>>;
+}
+
+/** CMS 키가 아닌 ko 문구(페이월 캠페인 문구 등)를 다른 지원 언어로 AI 번역만 한다 — 저장하지 않는다. */
+export async function translateTexts(
+  texts: Record<string, string>,
+  descriptions?: Record<string, string>,
+) {
+  const { data } = await client.post<TranslateTextsResponse>(
+    "/i18n/translate-texts",
+    { texts, ...(descriptions ? { descriptions } : {}) },
+    { timeout: 0 },
+  );
+  return data;
+}

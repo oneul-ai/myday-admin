@@ -13,7 +13,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { ArrowLeftOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, TranslationOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
@@ -25,6 +25,7 @@ import {
   getPaywallCampaigns,
   upsertPaywallCampaign,
 } from "../../api/appSettings";
+import { translateTexts } from "../../api/i18n";
 import { OVERRIDE_LOCALES } from "../../constants/locales";
 
 // Form 에서는 기간을 DatePicker 값(Dayjs)으로 다루고 저장 시 offset 포함
@@ -85,6 +86,13 @@ function toBannerPayload(values: CampaignFormValues["banner"]): PaywallBanner | 
   return isEmpty ? null : banner;
 }
 
+// 번역 지침 — 이름이 곧 맥락(키)이고, 배너 자리표시자는 그대로 둬야 앱이 채운다.
+const TRANSLATE_DESCRIPTIONS: Record<string, string> = {
+  "headline.text": "구독 페이월 헤더 바로 아래 짧은 프로모션 문구(한 줄, 해요체 톤의 친근한 마케팅 카피)",
+  "banner.title": "마이 탭 PLUS 구독 유도 배너 제목. {percent}·{deadline} 자리표시자는 번역하지 말고 그대로 둔다",
+  "banner.subtitle": "마이 탭 PLUS 구독 유도 배너 부제. {percent}·{deadline} 자리표시자는 번역하지 말고 그대로 둔다",
+};
+
 // 자주 쓰는 스토어프론트 — 자유 입력도 허용한다(ISO 3166-1 alpha-3 대문자).
 const STOREFRONT_PRESETS = [
   { value: "KOR", label: "KOR (한국)" },
@@ -97,6 +105,20 @@ const STOREFRONT_PRESETS = [
 function errorDetail(err: unknown) {
   return (err as { response?: { data?: { detail?: string } } })?.response?.data
     ?.detail;
+}
+
+/** 한국어 문구를 나머지 언어로 AI 번역해 빈 칸을 채운다. */
+function TranslateButton({ loading, onClick }: { loading: boolean; onClick: () => void }) {
+  return (
+    <Space style={{ marginBottom: 16 }}>
+      <Button icon={<TranslationOutlined />} loading={loading} onClick={onClick}>
+        나머지 언어 AI 번역
+      </Button>
+      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+        비어 있는 언어 칸만 채워요. 확인 후 저장하세요.
+      </Typography.Text>
+    </Space>
+  );
 }
 
 function StoredIsoHint({ value }: { value?: Dayjs | null }) {
@@ -119,6 +141,53 @@ function CampaignForm({
   const [form] = Form.useForm<CampaignFormValues>();
   const startsAt = Form.useWatch("starts_at", form);
   const endsAt = Form.useWatch("ends_at", form);
+
+  // 한국어 문구 → 나머지 언어 AI 번역. 비어 있는 언어 칸만 채운다(손본 번역을 덮지 않게) — 저장은 "저장" 버튼.
+  const translateMutation = useMutation({
+    mutationFn: ({ texts }: { section: "headline" | "banner"; texts: Record<string, string> }) =>
+      translateTexts(texts, TRANSLATE_DESCRIPTIONS),
+    onSuccess: ({ translations }, { section }) => {
+      let filled = 0;
+      for (const [name, byLocale] of Object.entries(translations)) {
+        // 이름은 "headline.text" · "banner.title" · "banner.subtitle" — 폼 경로로 되돌린다.
+        const field = name.split(".")[1];
+        for (const { code } of OVERRIDE_LOCALES) {
+          const value = byLocale[code];
+          if (!value) continue;
+          const path = section === "headline"
+            ? ["headline", "localizations", code]
+            : ["banner", "localizations", code, field];
+          // 경로를 문자열 배열로 조립하므로 Form 의 경로 타입을 건너뛴다(값은 모두 문자열 칸).
+          if (!form.getFieldValue(path as never)) {
+            form.setFieldValue(path as never, value as never);
+            filled += 1;
+          }
+        }
+      }
+      message.success(
+        filled > 0
+          ? `${filled}개 칸을 채웠어요. 확인 후 저장하세요`
+          : "비어 있는 언어 칸이 없어요. 다시 번역하려면 해당 칸을 비우세요",
+      );
+    },
+    onError: (err: unknown) => {
+      message.error(errorDetail(err) ?? "번역 실패");
+    },
+  });
+
+  const translateSection = (section: "headline" | "banner") => {
+    const names = section === "headline" ? ["text"] : ["title", "subtitle"];
+    const texts: Record<string, string> = {};
+    for (const name of names) {
+      const value = (form.getFieldValue([section, name] as never) as string | null | undefined)?.trim();
+      if (value) texts[`${section}.${name}`] = value;
+    }
+    if (Object.keys(texts).length === 0) {
+      message.warning("먼저 한국어 문구를 입력하세요");
+      return;
+    }
+    translateMutation.mutate({ section, texts });
+  };
 
   const upsertMutation = useMutation({
     mutationFn: ({
@@ -311,6 +380,10 @@ function CampaignForm({
       <Form.Item name={["headline", "text"]} label="문구 (기본 · 한국어)">
         <Input placeholder="지금만 만날 수 있는 특별한 가격이에요" />
       </Form.Item>
+      <TranslateButton
+        loading={translateMutation.isPending && translateMutation.variables?.section === "headline"}
+        onClick={() => translateSection("headline")}
+      />
       {OVERRIDE_LOCALES.map(({ code, label }) => (
         <Form.Item name={["headline", "localizations", code]} label={`문구 · ${label}`} key={code}>
           <Input placeholder="비우면 기본(한국어) 문구" />
@@ -344,6 +417,10 @@ function CampaignForm({
       <Form.Item name={["banner", "subtitle"]} label="부제 (기본 · 한국어)">
         <Input placeholder="{deadline}까지 구독하면 평생 이 가격으로" />
       </Form.Item>
+      <TranslateButton
+        loading={translateMutation.isPending && translateMutation.variables?.section === "banner"}
+        onClick={() => translateSection("banner")}
+      />
       {OVERRIDE_LOCALES.map(({ code, label }) => (
         <Card size="small" title={`배너 문구 · ${label}`} key={code} style={{ marginBottom: 12 }}>
           <Form.Item name={["banner", "localizations", code, "title"]} label="제목">

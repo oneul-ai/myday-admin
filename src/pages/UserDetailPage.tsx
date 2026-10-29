@@ -1032,7 +1032,7 @@ export default function UserDetailPage() {
               onClick={() => {
                 form.setFieldsValue({
                   name: user.name,
-                  plan: user.plan?.toUpperCase(),
+                  plan: user.plan?.toLowerCase(),
                   is_tester: user.is_tester,
                 });
                 setEditOpen(true);
@@ -1118,8 +1118,8 @@ export default function UserDetailPage() {
           <Form.Item name="plan" label="Plan" rules={[{ required: true }]}>
             <Select
               options={[
-                { label: "FREE", value: "FREE" },
-                { label: "PLUS", value: "PLUS" },
+                { label: "FREE", value: "free" },
+                { label: "PLUS", value: "plus" },
               ]}
             />
           </Form.Item>

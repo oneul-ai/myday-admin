@@ -133,6 +133,46 @@ export async function updateAppLinksSettings(body: Partial<AppLinksSettings>) {
   return data;
 }
 
+/** 플랫폼 하나의 앱 버전 정책. 둘 다 null 이면 미설정 — 서버가 폴백을 적용한다. */
+export interface AppVersionPlatformPolicy {
+  /** "1.2" / "1.2.3" 형태. 이보다 낮은 X-App-Version 은 강제 업데이트 대상. */
+  min_supported_version: string | null;
+  /** 강제 업데이트 시 열 스토어 URL. null 이면 플랫폼 기본 URL. */
+  store_url: string | null;
+}
+
+export type AppPlatform = "ios" | "android";
+
+/** /awake 의 update 섹션(force_update·store_url) 근거. 서버는 X-Platform(없으면 User-Agent, 기본 iOS)으로
+ * 플랫폼을 정하고, 저장값이 없으면 fallback(환경변수 최소 버전·기본 스토어 URL)을 쓴다. */
+export interface AppVersionPolicySettings {
+  ios: AppVersionPlatformPolicy;
+  android: AppVersionPlatformPolicy;
+  fallback: {
+    /** 서버 환경변수 MIN_SUPPORTED_APP_VERSION. 플랫폼 값이 비어 있을 때 적용. */
+    min_supported_version: string | null;
+    store_url: Record<AppPlatform, string>;
+  };
+}
+
+export async function getAppVersionPolicy() {
+  const { data } = await client.get<AppVersionPolicySettings>(
+    "/app-settings/app-version",
+  );
+  return data;
+}
+
+/** 플랫폼 단위 통째 교체 — body 에 포함된 플랫폼만 바꾼다. */
+export async function updateAppVersionPolicy(
+  body: Partial<Record<AppPlatform, Partial<AppVersionPlatformPolicy>>>,
+) {
+  const { data } = await client.put<AppVersionPolicySettings>(
+    "/app-settings/app-version",
+    body,
+  );
+  return data;
+}
+
 /** 페이월 캠페인 — 연간 할인 이벤트. 할인가는 App Store 의 별도 연간 상품으로 구현하고,
  * 그 상품을 "언제·어느 스토어에" 보여줄지를 이 설정이 정한다 (myday-api docs/paywall-campaigns.md).
  * 서버 리스트 순서가 곧 우선순위 — 클라이언트는 자기 스토어프론트에 맞는 첫 캠페인을 쓴다. */

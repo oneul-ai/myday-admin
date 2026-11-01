@@ -19,6 +19,7 @@ import HourlyMetricsPage from "./pages/HourlyMetricsPage";
 import AdminsPage from "./pages/AdminsPage";
 import AdSettingsPage from "./pages/AdSettingsPage";
 import AppLinksPage from "./pages/AppLinksPage";
+import AppVersionPolicyPage from "./pages/AppVersionPolicyPage";
 import RemoteConfigPage from "./pages/RemoteConfigPage";
 import MarketingInAppListPage from "./pages/marketingInApp/MarketingInAppListPage";
 import MarketingInAppEditorPage from "./pages/marketingInApp/MarketingInAppEditorPage";
@@ -121,6 +122,7 @@ export default function App() {
                     element={<PaywallCampaignEditorPage />}
                   />
                   <Route path="/app-links" element={<AppLinksPage />} />
+                  <Route path="/app-version" element={<AppVersionPolicyPage />} />
                   <Route path="/remote-config" element={<RemoteConfigPage />} />
                   <Route
                     path="/email-campaigns"

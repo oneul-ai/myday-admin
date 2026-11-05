@@ -1119,6 +1119,7 @@ export default function UserDetailPage() {
             <Select
               options={[
                 { label: "FREE", value: "free" },
+                { label: "LITE", value: "lite" },
                 { label: "PLUS", value: "plus" },
               ]}
             />

@@ -2,12 +2,26 @@ import client from "./client";
 
 export type EmailCampaignStatus = "draft" | "sending" | "sent" | "failed";
 
+// 템플릿 언어. 수신자 언어는 서버가 기기 언어 → 타임존(Asia/Seoul=ko, Asia/Tokyo=ja)
+// → en 순으로 확정하므로, 언어별 캠페인 3개를 만들면 전원이 정확히 하나에 들어간다.
+export type CampaignLanguage = "en" | "ko" | "ja";
+export const CAMPAIGN_LANGUAGES: CampaignLanguage[] = ["en", "ko", "ja"];
+export const CAMPAIGN_LANGUAGE_LABELS: Record<CampaignLanguage, string> = {
+  en: "영어 (en, 기본)",
+  ko: "한국어 (ko)",
+  ja: "일본어 (ja)",
+};
+
 export interface AudiencePreview {
   total: number;
   named: number;
   noname: number;
   // noname 유저가 있는데 noname 템플릿이 없어 발송에서 제외되는 경우 true
   noname_will_be_skipped: boolean;
+  // 캠페인의 언어 필터 (null = 언어 무관 전체). total/named/noname 은 이 필터 적용 후 수.
+  language: CampaignLanguage | null;
+  // 언어 필터를 뺀 전체 대상의 언어별 분포 — 세 캠페인의 합이 전체와 맞는지 확인용.
+  by_language: Record<CampaignLanguage, number>;
 }
 
 // 발송 방식: bulk = /email/bulk (Postmark 계정 승인 필요, 비동기+진행률 폴링),
@@ -41,6 +55,8 @@ export interface EmailCampaign {
   // 가입 시각 범위 필터 (양끝 포함, ISO datetime). null 은 해당 방향 제한 없음.
   joined_after: string | null;
   joined_before: string | null;
+  // 템플릿 언어 필터. null 이면 언어와 무관하게 전원에게 보낸다.
+  language: CampaignLanguage | null;
   status: EmailCampaignStatus;
   recipient_count: number | null;
   postmark_bulk_ids: PostmarkBulkEntry[] | null;
@@ -68,6 +84,7 @@ export interface EmailCampaignInput {
   marketing_agreed_only?: boolean;
   joined_after?: string | null;
   joined_before?: string | null;
+  language?: CampaignLanguage | null;
 }
 
 export async function getEmailCampaigns(params?: { offset?: number; limit?: number }) {

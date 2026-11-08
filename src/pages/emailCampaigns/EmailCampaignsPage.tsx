@@ -9,6 +9,7 @@ import {
   deleteEmailCampaign,
   getEmailCampaigns,
   syncSuppressions,
+  type CampaignLanguage,
   type EmailCampaign,
   type EmailCampaignStatus,
 } from "../../api/emailCampaigns";
@@ -86,6 +87,13 @@ export default function EmailCampaignsPage() {
         width: 130,
         render: (v: boolean) =>
           v ? <Tag>마케팅 동의</Tag> : <Tag color="orange">전체 유저</Tag>,
+      },
+      {
+        title: "언어",
+        dataIndex: "language",
+        width: 80,
+        render: (v: CampaignLanguage | null) =>
+          v ? <Tag color="blue">{v}</Tag> : <Typography.Text type="secondary">전체</Typography.Text>,
       },
       {
         title: "상태",

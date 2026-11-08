@@ -28,11 +28,14 @@ import dayjs, { type Dayjs } from "dayjs";
 import utc from "dayjs/plugin/utc";
 import timezone from "dayjs/plugin/timezone";
 import {
+  CAMPAIGN_LANGUAGE_LABELS,
+  CAMPAIGN_LANGUAGES,
   createEmailCampaign,
   getEmailCampaign,
   sendEmailCampaign,
   sendTestEmail,
   updateEmailCampaign,
+  type CampaignLanguage,
   type EmailCampaign,
   type EmailCampaignInput,
   type PostmarkBulkStatus,
@@ -118,6 +121,7 @@ export default function EmailCampaignEditorPage() {
         marketing_agreed_only: values.marketing_agreed_only,
         joined_after: kstToIso(values.joined_range?.[0]),
         joined_before: kstToIso(values.joined_range?.[1]),
+        language: (values.language as CampaignLanguage | "" | undefined) || null,
       };
       return isNew ? createEmailCampaign(body) : updateEmailCampaign(campaignId!, body);
     },
@@ -273,6 +277,7 @@ export default function EmailCampaignEditorPage() {
             noname_template_alias: campaign?.noname_template_alias ?? "",
             template_model: campaign ? JSON.stringify(campaign.template_model, null, 2) : "{\n  \n}",
             marketing_agreed_only: campaign?.marketing_agreed_only ?? true,
+            language: campaign?.language ?? "",
             joined_range: [
               isoToKst(campaign?.joined_after ?? null),
               isoToKst(campaign?.joined_before ?? null),
@@ -317,18 +322,36 @@ export default function EmailCampaignEditorPage() {
               placeholder={'{\n  "preheader": "마이데이가 새로워졌어요!",\n  "app_link": "https://apps.apple.com/..."\n}'}
             />
           </Form.Item>
-          <Form.Item
-            name="joined_range"
-            label="가입 시각 범위 (KST)"
-            tooltip="양끝 포함. 한쪽만 지정하거나 비워둘 수 있고, 비우면 전체 기간입니다."
-          >
-            <DatePicker.RangePicker
-              showTime={{ format: "HH:mm" }}
-              format="YYYY-MM-DD HH:mm"
-              allowEmpty={[true, true]}
-              style={{ width: 420 }}
-            />
-          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name="joined_range"
+                label="가입 시각 범위 (KST)"
+                tooltip="양끝 포함. 한쪽만 지정하거나 비워둘 수 있고, 비우면 전체 기간입니다."
+              >
+                <DatePicker.RangePicker
+                  showTime={{ format: "HH:mm" }}
+                  format="YYYY-MM-DD HH:mm"
+                  allowEmpty={[true, true]}
+                  style={{ width: "100%" }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name="language"
+                label="템플릿 언어"
+                tooltip="수신자 언어는 기기 앱 언어 → 타임존(서울=ko, 도쿄=ja) → en 순으로 정해집니다. 언어별 템플릿을 쓸 때는 언어마다 캠페인을 하나씩 만드세요. '전체'는 언어와 무관하게 전원에게 보냅니다."
+              >
+                <Select
+                  options={[
+                    { value: "", label: "전체 (언어 무관)" },
+                    ...CAMPAIGN_LANGUAGES.map((l) => ({ value: l, label: CAMPAIGN_LANGUAGE_LABELS[l] })),
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item
             name="marketing_agreed_only"
             label="마케팅 수신동의 유저만"
@@ -359,6 +382,24 @@ export default function EmailCampaignEditorPage() {
                 <Statistic title="이름 없음" value={preview?.noname ?? 0} />
               </Col>
             </Row>
+            <Typography.Text type="secondary" style={{ display: "block", marginTop: 16, marginBottom: 8 }}>
+              언어별 분포 (언어 필터 적용 전, 전체 대상 기준)
+            </Typography.Text>
+            <Space size="middle" wrap>
+              {CAMPAIGN_LANGUAGES.map((l) => (
+                <Tag key={l} color={preview?.language === l ? "blue" : "default"}>
+                  {l}: {preview?.by_language?.[l] ?? 0}명
+                </Tag>
+              ))}
+            </Space>
+            {preview?.language && (
+              <Alert
+                type="info"
+                showIcon
+                style={{ marginTop: 16 }}
+                message={`언어 필터 ${preview.language} — 위 수치는 ${preview.language} 로 배정된 유저만 센 것입니다. 다른 언어 유저에게는 별도 캠페인을 만들어 보내세요.`}
+              />
+            )}
             {preview?.noname_will_be_skipped && (
               <Alert
                 type="warning"
@@ -447,6 +488,9 @@ export default function EmailCampaignEditorPage() {
             <Descriptions.Item label="생성자">{campaign.created_by}</Descriptions.Item>
             <Descriptions.Item label="대상 필터">
               {campaign.marketing_agreed_only ? "마케팅 동의 유저" : "전체 유저"}
+            </Descriptions.Item>
+            <Descriptions.Item label="템플릿 언어">
+              {campaign.language ? CAMPAIGN_LANGUAGE_LABELS[campaign.language] : "전체 (언어 무관)"}
             </Descriptions.Item>
             <Descriptions.Item label="가입 시각 범위 (KST)">
               {campaign.joined_after || campaign.joined_before

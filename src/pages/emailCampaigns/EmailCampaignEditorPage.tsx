@@ -21,7 +21,7 @@ import {
   Typography,
   message,
 } from "antd";
-import { ArrowLeftOutlined, MailOutlined, SendOutlined } from "@ant-design/icons";
+import { ArrowLeftOutlined, MailOutlined, ReloadOutlined, SendOutlined } from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs, { type Dayjs } from "dayjs";
@@ -36,11 +36,13 @@ import {
   sendTestEmail,
   updateEmailCampaign,
   type CampaignLanguage,
+  type CampaignLinkClicks,
   type EmailCampaign,
   type EmailCampaignInput,
   type PostmarkBulkStatus,
   type SendMethod,
 } from "../../api/emailCampaigns";
+import { deliveredCount, formatRate } from "./engagement";
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -100,7 +102,7 @@ export default function EmailCampaignEditorPage() {
   // 보내면 캠페인이 failed 로 굳어버리므로 승인 불필요한 batch 를 기본값으로 둔다.
   const [sendMethod, setSendMethod] = useState<SendMethod>("batch");
 
-  const { data: campaign, isLoading } = useQuery({
+  const { data: campaign, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["email-campaign", campaignId],
     queryFn: () => getEmailCampaign(campaignId!),
     enabled: !isNew,
@@ -234,6 +236,27 @@ export default function EmailCampaignEditorPage() {
       },
     },
   ];
+
+  const linkColumns = [
+    {
+      title: "링크",
+      dataIndex: "link",
+      ellipsis: true,
+      render: (v: string) =>
+        v ? (
+          <Typography.Link href={v} target="_blank" rel="noreferrer">
+            {v}
+          </Typography.Link>
+        ) : (
+          <Typography.Text type="secondary">(알 수 없음)</Typography.Text>
+        ),
+    },
+    { title: "클릭 수", dataIndex: "clicks", width: 100 },
+    { title: "클릭한 사람", dataIndex: "unique_clicks", width: 110 },
+  ];
+
+  const engagement = campaign?.engagement;
+  const delivered = campaign ? deliveredCount(campaign) : null;
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -519,6 +542,79 @@ export default function EmailCampaignEditorPage() {
             dataSource={campaign.postmark_statuses ?? (campaign.postmark_bulk_ids as PostmarkBulkStatus[] | null) ?? []}
             pagination={false}
           />
+        </Card>
+      )}
+
+      {!isDraft && campaign && engagement && (
+        <Card
+          title="오픈 · 클릭"
+          style={{ marginTop: 16 }}
+          extra={
+            <Space>
+              {engagement.last_event_at && (
+                <Typography.Text type="secondary">
+                  마지막 이벤트 {dayjs(engagement.last_event_at).format("YYYY-MM-DD HH:mm")}
+                </Typography.Text>
+              )}
+              <Button size="small" icon={<ReloadOutlined />} loading={isFetching} onClick={() => refetch()}>
+                새로고침
+              </Button>
+            </Space>
+          }
+        >
+          <Row gutter={16} style={{ marginBottom: 16 }}>
+            <Col span={6}>
+              <Statistic
+                title="오픈한 사람"
+                value={engagement.unique_opens}
+                suffix={
+                  <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                    / {delivered ?? "—"}
+                  </Typography.Text>
+                }
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic title="오픈율" value={formatRate(engagement.unique_opens, delivered)} />
+            </Col>
+            <Col span={6}>
+              <Statistic
+                title="클릭한 사람"
+                value={engagement.unique_clicks}
+                suffix={
+                  <Typography.Text type="secondary" style={{ fontSize: 14 }}>
+                    / {delivered ?? "—"}
+                  </Typography.Text>
+                }
+              />
+            </Col>
+            <Col span={6}>
+              <Statistic title="클릭율" value={formatRate(engagement.unique_clicks, delivered)} />
+            </Col>
+          </Row>
+          <Descriptions column={3} size="small" style={{ marginBottom: 16 }}>
+            <Descriptions.Item label="총 오픈 수">{engagement.total_opens}</Descriptions.Item>
+            <Descriptions.Item label="총 클릭 수">{engagement.total_clicks}</Descriptions.Item>
+            <Descriptions.Item label="오픈 대비 클릭 (CTOR)">
+              {formatRate(engagement.unique_clicks, engagement.unique_opens || null)}
+            </Descriptions.Item>
+          </Descriptions>
+          <Typography.Text strong style={{ display: "block", marginBottom: 8 }}>
+            링크별 클릭
+          </Typography.Text>
+          <Table<CampaignLinkClicks>
+            rowKey="link"
+            size="small"
+            columns={linkColumns}
+            dataSource={engagement.links ?? []}
+            pagination={false}
+            locale={{ emptyText: "아직 클릭이 없습니다" }}
+          />
+          <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+            Postmark Open·Click 웹훅으로 집계됩니다. 비율의 분모는 접수 수신자에서 통별 실패를 뺀
+            수이며, 오픈은 이미지 차단 시 잡히지 않아 실제보다 낮게 나올 수 있습니다. 테스트 발송은
+            수치에 포함되지 않습니다.
+          </Typography.Paragraph>
         </Card>
       )}
     </div>

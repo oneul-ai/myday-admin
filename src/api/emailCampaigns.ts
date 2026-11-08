@@ -45,6 +45,24 @@ export interface PostmarkBulkStatus extends PostmarkBulkEntry {
   percentage_completed: number | null;
 }
 
+// 오픈/클릭 집계 (Postmark Open·Click 웹훅을 서버가 캠페인별로 기록한 것).
+// unique_* 는 수신자(이메일) 기준, total_* 은 이벤트 수. 발송 전엔 전부 0.
+export interface CampaignEngagement {
+  unique_opens: number;
+  total_opens: number;
+  unique_clicks: number;
+  total_clicks: number;
+  last_event_at: string | null;
+  // 상세 조회에만 포함. 많이 클릭된 순.
+  links?: CampaignLinkClicks[];
+}
+
+export interface CampaignLinkClicks {
+  link: string;
+  clicks: number;
+  unique_clicks: number;
+}
+
 export interface EmailCampaign {
   id: number;
   template_alias: string;
@@ -64,6 +82,7 @@ export interface EmailCampaign {
   created_by: string;
   created_at: string;
   sent_at: string | null;
+  engagement?: CampaignEngagement;
   // 상태별 부가 필드 (서버가 조건부로 내려줌)
   audience_preview?: AudiencePreview;
   postmark_statuses?: PostmarkBulkStatus[];

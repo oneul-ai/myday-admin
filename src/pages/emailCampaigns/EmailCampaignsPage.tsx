@@ -13,6 +13,7 @@ import {
   type EmailCampaign,
   type EmailCampaignStatus,
 } from "../../api/emailCampaigns";
+import { deliveredCount, formatRate } from "./engagement";
 
 const STATUS_META: Record<EmailCampaignStatus, { label: string; color: string }> = {
   draft: { label: "draft", color: "gold" },
@@ -110,6 +111,34 @@ export default function EmailCampaignsPage() {
         width: 90,
         render: (v: number | null) =>
           v ?? <Typography.Text type="secondary">—</Typography.Text>,
+      },
+      {
+        title: "오픈 / 클릭",
+        key: "engagement",
+        width: 170,
+        render: (_: unknown, row: EmailCampaign) => {
+          // 고유 수신자 기준. 분모는 접수 수신자 − batch 통별 실패.
+          if (row.status === "draft" || !row.engagement) {
+            return <Typography.Text type="secondary">—</Typography.Text>;
+          }
+          const delivered = deliveredCount(row);
+          return (
+            <Space direction="vertical" size={0}>
+              <Typography.Text>
+                오픈 {row.engagement.unique_opens}{" "}
+                <Typography.Text type="secondary">
+                  ({formatRate(row.engagement.unique_opens, delivered)})
+                </Typography.Text>
+              </Typography.Text>
+              <Typography.Text>
+                클릭 {row.engagement.unique_clicks}{" "}
+                <Typography.Text type="secondary">
+                  ({formatRate(row.engagement.unique_clicks, delivered)})
+                </Typography.Text>
+              </Typography.Text>
+            </Space>
+          );
+        },
       },
       { title: "생성자", dataIndex: "created_by", width: 200, ellipsis: true },
       {

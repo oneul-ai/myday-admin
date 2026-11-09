@@ -1,7 +1,7 @@
-import { Input, Space, Switch, Table, Tag, Typography } from "antd";
+import { Input, Select, Space, Switch, Table, Tag, Typography } from "antd";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { getUsers, type User } from "../api/users";
+import { getUsers, USER_PLAN_OPTIONS, type User, type UserPlan } from "../api/users";
 import type { TableProps } from "antd";
 import dayjs from "dayjs";
 
@@ -9,10 +9,12 @@ type SortField = "joined_at" | "last_signed_in_at";
 const DEFAULT_SORT = { field: "joined_at" as SortField, order: "desc" as const };
 const DEFAULT_PAGE_SIZE = 20;
 
-// 목록 상태(검색어/페이지/정렬)를 URL 쿼리에 두어 상세 페이지에서 back 해도 유지되게 한다
+// 목록 상태(검색어/필터/페이지/정렬)를 URL 쿼리에 두어 상세 페이지에서 back 해도 유지되게 한다
 function readListState(sp: URLSearchParams) {
+  const planParam = sp.get("plan");
   return {
     search: sp.get("q") ?? "",
+    plan: USER_PLAN_OPTIONS.find((o) => o.value === planParam)?.value,
     includeDeleted: sp.get("deleted") === "1",
     current: Math.max(1, Number(sp.get("page")) || 1),
     pageSize: Number(sp.get("size")) || DEFAULT_PAGE_SIZE,
@@ -26,12 +28,13 @@ function readListState(sp: URLSearchParams) {
 export default function UsersPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { search, includeDeleted, current, pageSize, sort } = readListState(searchParams);
+  const { search, plan, includeDeleted, current, pageSize, sort } = readListState(searchParams);
 
   const patchParams = (patch: Partial<ReturnType<typeof readListState>>) => {
-    const next = { search, includeDeleted, current, pageSize, sort, ...patch };
+    const next = { search, plan, includeDeleted, current, pageSize, sort, ...patch };
     const sp = new URLSearchParams();
     if (next.search) sp.set("q", next.search);
+    if (next.plan) sp.set("plan", next.plan);
     if (next.includeDeleted) sp.set("deleted", "1");
     if (next.current > 1) sp.set("page", String(next.current));
     if (next.pageSize !== DEFAULT_PAGE_SIZE) sp.set("size", String(next.pageSize));
@@ -47,11 +50,12 @@ export default function UsersPage() {
   const { data, isLoading } = useQuery({
     queryKey: [
       "users",
-      { q: search, offset, limit: pageSize, includeDeleted, sort },
+      { q: search, plan, offset, limit: pageSize, includeDeleted, sort },
     ],
     queryFn: () =>
       getUsers({
         q: search || undefined,
+        plan,
         offset,
         limit: pageSize,
         include_deleted: includeDeleted || undefined,
@@ -162,6 +166,14 @@ export default function UsersPage() {
           defaultValue={search}
           onSearch={(value) => patchParams({ search: value, current: 1 })}
           style={{ width: 400 }}
+        />
+        <Select<UserPlan>
+          placeholder="Plan"
+          allowClear
+          style={{ width: 140 }}
+          value={plan}
+          onChange={(value) => patchParams({ plan: value, current: 1 })}
+          options={USER_PLAN_OPTIONS}
         />
         <Space>
           <Switch

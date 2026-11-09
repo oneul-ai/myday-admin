@@ -26,6 +26,7 @@ import {
   getUserPreferences,
   getUserNotificationSettings,
   updateUser,
+  USER_PLAN_OPTIONS,
   type User,
   type UserPreferences,
   type UserNotificationSettings,
@@ -1116,13 +1117,7 @@ export default function UserDetailPage() {
             <Input />
           </Form.Item>
           <Form.Item name="plan" label="Plan" rules={[{ required: true }]}>
-            <Select
-              options={[
-                { label: "FREE", value: "free" },
-                { label: "LITE", value: "lite" },
-                { label: "PLUS", value: "plus" },
-              ]}
-            />
+            <Select options={USER_PLAN_OPTIONS} />
           </Form.Item>
           <Form.Item
             name="is_tester"

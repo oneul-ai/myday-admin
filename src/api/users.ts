@@ -73,8 +73,17 @@ export interface UsersResponse {
   users: User[];
 }
 
+export type UserPlan = "free" | "lite" | "plus";
+
+export const USER_PLAN_OPTIONS: { label: string; value: UserPlan }[] = [
+  { label: "FREE", value: "free" },
+  { label: "LITE", value: "lite" },
+  { label: "PLUS", value: "plus" },
+];
+
 export async function getUsers(params: {
   q?: string;
+  plan?: UserPlan;
   offset?: number;
   limit?: number;
   include_deleted?: boolean;

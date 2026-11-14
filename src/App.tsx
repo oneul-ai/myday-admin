@@ -35,6 +35,8 @@ import BlogPostsPage from "./pages/blog/BlogPostsPage";
 import BlogPostEditorPage from "./pages/blog/BlogPostEditorPage";
 import EmailCampaignsPage from "./pages/emailCampaigns/EmailCampaignsPage";
 import EmailCampaignEditorPage from "./pages/emailCampaigns/EmailCampaignEditorPage";
+import PushCampaignsPage from "./pages/pushCampaigns/PushCampaignsPage";
+import PushCampaignEditorPage from "./pages/pushCampaigns/PushCampaignEditorPage";
 import I18nKeysPage from "./pages/i18n/KeysPage";
 import I18nPublishPage from "./pages/i18n/PublishPage";
 
@@ -145,6 +147,30 @@ export default function App() {
                     element={
                       <SuperAdminRoute>
                         <EmailCampaignEditorPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/push-campaigns"
+                    element={
+                      <SuperAdminRoute>
+                        <PushCampaignsPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/push-campaigns/new"
+                    element={
+                      <SuperAdminRoute>
+                        <PushCampaignEditorPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/push-campaigns/:id"
+                    element={
+                      <SuperAdminRoute>
+                        <PushCampaignEditorPage />
                       </SuperAdminRoute>
                     }
                   />

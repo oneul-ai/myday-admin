@@ -17,6 +17,7 @@ import {
   LinkOutlined,
   MobileOutlined,
   MailOutlined,
+  BellOutlined,
   SwapOutlined,
   CreditCardOutlined,
   PercentageOutlined,
@@ -74,6 +75,7 @@ const superAdminMenuItems = [
   { key: "/user-auth-migration", icon: <SwapOutlined />, label: "인증 이관" },
   { key: "/app-store", icon: <CreditCardOutlined />, label: "App Store 결제" },
   { key: "/email-campaigns", icon: <MailOutlined />, label: "이메일 캠페인" },
+  { key: "/push-campaigns", icon: <BellOutlined />, label: "푸시 캠페인" },
   { key: "/admins", icon: <SafetyOutlined />, label: "Admins" },
 ];
 

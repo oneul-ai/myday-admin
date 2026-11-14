@@ -8,6 +8,7 @@ import dayjs from "dayjs";
 import {
   deletePushCampaign,
   getPushCampaigns,
+  PUSH_PLATFORM_LABELS,
   type ConsentRequirement,
   type PushCampaign,
   type PushCampaignStatus,
@@ -69,6 +70,21 @@ export default function PushCampaignsPage() {
           ) : (
             <Tag color="orange">전체 유저</Tag>
           ),
+      },
+      {
+        title: "플랫폼 · 최소 버전",
+        key: "platforms",
+        width: 170,
+        render: (_: unknown, row: PushCampaign) => (
+          <Space size={[0, 4]} wrap>
+            {row.platforms.map((p) => (
+              <Tag key={p}>
+                {PUSH_PLATFORM_LABELS[p] ?? p}
+                {row.min_app_versions[p] ? ` ≥ ${row.min_app_versions[p]}` : ""}
+              </Tag>
+            ))}
+          </Space>
+        ),
       },
       {
         title: "언어",

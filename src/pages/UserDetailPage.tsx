@@ -850,6 +850,14 @@ export default function UserDetailPage() {
                 ),
             },
             {
+              // 마지막으로 앱을 연 시점의 버전 (X-App-Version). null 은 미확인.
+              title: "App Version",
+              dataIndex: "app_version",
+              width: 120,
+              render: (v: string | null) =>
+                v ?? <Typography.Text type="secondary">미확인</Typography.Text>,
+            },
+            {
               title: "Status",
               dataIndex: "status",
               width: 120,

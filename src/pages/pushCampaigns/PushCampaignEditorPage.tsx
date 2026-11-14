@@ -38,11 +38,14 @@ import {
   translatePushCopy,
   updatePushCampaign,
   PUSH_LOCALES,
+  PUSH_PLATFORMS,
+  PUSH_PLATFORM_LABELS,
   type ConsentRequirement,
   type PushCampaign,
   type PushCampaignInput,
   type PushLocale,
   type PushLocalizations,
+  type PushPlatform,
   type ScheduleBasis,
 } from "../../api/pushCampaigns";
 import { LOCALE_LABELS, OVERRIDE_LOCALES } from "../../constants/locales";
@@ -57,6 +60,9 @@ interface FormValues {
   localizations: Record<PushLocale, { title?: string; body?: string } | undefined>;
   deeplink?: string;
   consent_requirements: ConsentRequirement[];
+  platforms: PushPlatform[];
+  min_app_versions: Partial<Record<PushPlatform, string>>;
+  include_unknown_app_version: boolean;
   schedule_basis: ScheduleBasis;
   // absolute: KST 벽시계로 다루는 발송 시각. local: 유저 현지 벽시계 시각.
   scheduled_time: Dayjs | null;
@@ -94,6 +100,14 @@ function toInput(values: FormValues): PushCampaignInput {
     localizations,
     deeplink: values.deeplink?.trim() || null,
     consent_requirements: values.consent_requirements ?? [],
+    platforms: values.platforms,
+    // 대상에서 뺀 플랫폼과 비워 둔 입력은 보내지 않는다 (= 버전 제한 없음).
+    min_app_versions: Object.fromEntries(
+      PUSH_PLATFORMS.filter((p) => values.platforms.includes(p))
+        .map((p) => [p, values.min_app_versions?.[p]?.trim() ?? ""] as const)
+        .filter(([, v]) => v),
+    ),
+    include_unknown_app_version: values.include_unknown_app_version ?? false,
     schedule_basis: values.schedule_basis,
     ...toScheduleInput(values.schedule_basis, values.scheduled_time),
   };
@@ -123,6 +137,9 @@ export default function PushCampaignEditorPage() {
   const preview = campaign?.audience_preview;
   const basis = Form.useWatch("schedule_basis", form) ?? campaign?.schedule_basis ?? "absolute";
   const consent = Form.useWatch("consent_requirements", form);
+  const platforms = Form.useWatch("platforms", form) ?? campaign?.platforms ?? PUSH_PLATFORMS;
+  const minVersions = Form.useWatch("min_app_versions", form);
+  const hasMinVersion = platforms.some((p) => minVersions?.[p]?.trim());
 
   const applySaved = (saved: PushCampaign) => {
     queryClient.invalidateQueries({ queryKey: ["push-campaigns"] });
@@ -301,6 +318,9 @@ export default function PushCampaignEditorPage() {
           localizations: campaign?.localizations ?? {},
           deeplink: campaign?.deeplink ?? "",
           consent_requirements: campaign?.consent_requirements ?? ["marketing_agreed"],
+          platforms: campaign?.platforms ?? PUSH_PLATFORMS,
+          min_app_versions: campaign?.min_app_versions ?? {},
+          include_unknown_app_version: campaign?.include_unknown_app_version ?? false,
           schedule_basis: campaign?.schedule_basis ?? "absolute",
           scheduled_time: fromCampaign(campaign),
         }}
@@ -380,6 +400,51 @@ export default function PushCampaignEditorPage() {
           )}
         </Card>
 
+        <Card title="앱 플랫폼 · 버전" style={{ marginBottom: 16 }}>
+          <Form.Item
+            name="platforms"
+            label="대상 플랫폼"
+            rules={[{ required: true, type: "array", min: 1, message: "플랫폼을 하나 이상 선택하세요." }]}
+          >
+            <Checkbox.Group
+              options={PUSH_PLATFORMS.map((p) => ({ value: p, label: PUSH_PLATFORM_LABELS[p] }))}
+            />
+          </Form.Item>
+          <Row gutter={16}>
+            {PUSH_PLATFORMS.map((p) => (
+              <Col span={12} key={p}>
+                <Form.Item
+                  name={["min_app_versions", p]}
+                  label={`${PUSH_PLATFORM_LABELS[p]} 최소 앱 버전`}
+                  tooltip="이 버전 이상을 쓰는 기기에만 보냅니다. 비우면 버전 제한이 없습니다."
+                  rules={[
+                    {
+                      pattern: /^\s*\d+(\.\d+)*\s*$/,
+                      message: "3.1.0 처럼 숫자와 점으로 입력하세요.",
+                    },
+                  ]}
+                >
+                  <Input
+                    placeholder="제한 없음"
+                    disabled={!isDraft || !platforms.includes(p)}
+                    addonAfter="이상"
+                  />
+                </Form.Item>
+              </Col>
+            ))}
+          </Row>
+          <Form.Item
+            name="include_unknown_app_version"
+            valuePropName="checked"
+            extra="버전은 기기가 마지막으로 앱을 연 시점 기준입니다. 버전 기록 도입 이후 앱을 한 번도 열지 않은 기기는 '미확인'이며, 기본적으로 버전 제한이 걸린 플랫폼에서는 제외됩니다."
+            style={{ marginBottom: 0 }}
+          >
+            <Checkbox disabled={!isDraft || !hasMinVersion}>
+              버전 미확인 기기도 포함 (구버전 유저에게 업데이트를 권할 때)
+            </Checkbox>
+          </Form.Item>
+        </Card>
+
         <Card title="발송 시각" style={{ marginBottom: 16 }}>
           <Form.Item name="schedule_basis" label="발송 시각 기준">
             <Radio.Group
@@ -422,7 +487,34 @@ export default function PushCampaignEditorPage() {
               <Statistic title="기기" value={preview.devices} />
             </Col>
           </Row>
+          {preview.excluded.platform + preview.excluded.app_version + preview.excluded.unknown_app_version >
+            0 && (
+            <Typography.Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
+              플랫폼·버전 조건으로 제외: 대상 외 플랫폼 {preview.excluded.platform}대 · 최소 버전 미만{" "}
+              {preview.excluded.app_version}대 · 버전 미확인 {preview.excluded.unknown_app_version}대
+            </Typography.Paragraph>
+          )}
           <Descriptions column={1} size="small" style={{ marginTop: 16 }}>
+            {PUSH_PLATFORMS.map((p) => (
+              <Descriptions.Item key={p} label={`${PUSH_PLATFORM_LABELS[p]} 버전 분포 (필터 전 ${preview.by_platform[p]}대)`}>
+                {preview.app_versions[p].length ? (
+                  <Space size={[0, 4]} wrap>
+                    {preview.app_versions[p].slice(0, 10).map(({ version, devices }) => (
+                      <Tag key={version ?? "unknown"} color={version === null ? "orange" : undefined}>
+                        {version ?? "미확인"} · {devices}
+                      </Tag>
+                    ))}
+                    {preview.app_versions[p].length > 10 && (
+                      <Typography.Text type="secondary">
+                        외 {preview.app_versions[p].length - 10}개 버전
+                      </Typography.Text>
+                    )}
+                  </Space>
+                ) : (
+                  <Typography.Text type="secondary">기기 없음</Typography.Text>
+                )}
+              </Descriptions.Item>
+            ))}
             <Descriptions.Item label="언어별 기기 (자동 배정)">
               <Space size={[0, 4]} wrap>
                 {PUSH_LOCALES.map((locale) => (

@@ -26,6 +26,14 @@ export type PushLocalizations = Partial<Record<PushLocale, PushCopy>>;
 // 수신 동의 기준 — 선택한 것을 전부 만족(AND)한 유저만 받는다. 빈 배열 = 전원.
 export type ConsentRequirement = "marketing_agreed" | "feature_news" | "events_benefits";
 
+// 대상 앱 플랫폼. 기기 종류는 android 만 android, 그 외(iphone/ipad/mac/web)는 ios 로 묶인다.
+export type PushPlatform = "ios" | "android";
+export const PUSH_PLATFORMS: PushPlatform[] = ["ios", "android"];
+export const PUSH_PLATFORM_LABELS: Record<PushPlatform, string> = {
+  ios: "iOS",
+  android: "Android",
+};
+
 // 발송 시각 기준. absolute = scheduled_at 에 전원 동시,
 // local = 유저 현지 시각이 scheduled_local_time 이 된 타임존부터 차례로.
 export type ScheduleBasis = "absolute" | "local";
@@ -39,6 +47,12 @@ export interface PushAudiencePreview {
   fallback_locales: PushLocale[];
   // 타임존별 기기 수 (많은 순). "" 는 타임존 미설정 — 현지 시각 판정은 Asia/Seoul.
   by_timezone: Record<string, number>;
+  // 아래 둘은 플랫폼·버전 필터를 걸기 전(수신 동의만 통과한) 기기 기준 — 필터를 정할 때 참고.
+  by_platform: Record<PushPlatform, number>;
+  // 플랫폼별 앱 버전 분포 (최신 버전부터). version null 은 버전 미확인 기기.
+  app_versions: Record<PushPlatform, { version: string | null; devices: number }[]>;
+  // 플랫폼·버전 필터로 빠지는 기기 수 (이유별).
+  excluded: { platform: number; app_version: number; unknown_app_version: number };
 }
 
 export interface PushCampaign {
@@ -47,6 +61,12 @@ export interface PushCampaign {
   localizations: PushLocalizations;
   deeplink: string | null;
   consent_requirements: ConsentRequirement[];
+  // 대상 플랫폼 (1개 이상).
+  platforms: PushPlatform[];
+  // 플랫폼별 최소 앱 버전 — 그 버전 이상인 기기만 받는다. 키가 없으면 제한 없음.
+  min_app_versions: Partial<Record<PushPlatform, string>>;
+  // 버전 제한이 있을 때 버전 미확인 기기(아직 앱을 안 연 기기 등)도 포함할지.
+  include_unknown_app_version: boolean;
   schedule_basis: ScheduleBasis;
   // absolute: 발송 시각. local: 가장 이른 타임존(UTC+14)의 발송 시각.
   scheduled_at: string | null;
@@ -76,6 +96,9 @@ export interface PushCampaignInput {
   localizations?: PushLocalizations;
   deeplink?: string | null;
   consent_requirements?: ConsentRequirement[];
+  platforms?: PushPlatform[];
+  min_app_versions?: Partial<Record<PushPlatform, string | null>>;
+  include_unknown_app_version?: boolean;
   schedule_basis?: ScheduleBasis;
   scheduled_at?: string | null;
   scheduled_local_time?: string | null;

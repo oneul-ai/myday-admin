@@ -19,6 +19,8 @@ export interface Device {
   // 기기의 앱 언어 — 저장 시 서버가 지원 locale(ko/en/ja/zh-Hans/zh-Hant) 하나로
   // 확정한다. null 은 미설정(구버전 클라이언트) = worker 발송 시 ko 폴백.
   language: string | null;
+  // 마지막 sync(앱 메인 진입) 때의 앱 버전. null 은 미확인 — 푸시 캠페인 버전 필터의 재료.
+  app_version: string | null;
   last_synced_at: string;
   created_at: string;
   updated_at: string;

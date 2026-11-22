@@ -214,6 +214,7 @@ function CampaignForm({
         enabled: values.enabled,
         name: values.name?.trim() || null,
         yearly_product_id: values.yearly_product_id?.trim() || null,
+        yearly_product_id_android: values.yearly_product_id_android?.trim() || null,
         badge: values.badge ?? null,
         starts_at: values.starts_at ? values.starts_at.format() : null,
         ends_at: values.ends_at ? values.ends_at.format() : null,
@@ -230,6 +231,16 @@ function CampaignForm({
     validator: (_: unknown, value: unknown) =>
       form.getFieldValue("enabled") && !value
         ? Promise.reject(new Error("노출 상태에서는 필수입니다"))
+        : Promise.resolve(),
+  };
+
+  // 상품 id 는 스토어마다 따로 — 한 스토어에만 여는 캠페인도 있으니 노출 상태에서는 둘 중 하나만 있으면 된다.
+  const productIdRequiredWhenEnabled = {
+    validator: () =>
+      form.getFieldValue("enabled") &&
+      !form.getFieldValue("yearly_product_id")?.trim() &&
+      !form.getFieldValue("yearly_product_id_android")?.trim()
+        ? Promise.reject(new Error("노출 상태에서는 iOS·Android 상품 ID 중 하나는 필수입니다"))
         : Promise.resolve(),
   };
 
@@ -275,19 +286,35 @@ function CampaignForm({
         name="enabled"
         label="노출"
         valuePropName="checked"
-        extra="켜면 기간 안에서 앱 실행 시 /awake 로 내려갑니다. 상품이 App Store Connect 에 아직 없거나 그 스토어에서 팔지 않으면 앱은 정가 연간으로 조용히 폴백합니다."
+        extra="켜면 기간 안에서 앱 실행 시 /awake 로 내려갑니다. 상품이 스토어(App Store Connect · Google Play Console)에 아직 없거나 그 스토어에서 팔지 않으면 앱은 정가 연간으로 조용히 폴백합니다."
       >
         <Switch />
       </Form.Item>
       <Form.Item
         name="yearly_product_id"
-        label="연간 상품 ID"
-        extra="App Store Connect 의 할인 연간 상품 id. 월간은 캠페인 대상이 아닙니다."
+        label="iOS 연간 상품 ID (App Store)"
+        dependencies={["enabled", "yearly_product_id_android"]}
+        extra="App Store Connect 의 할인 연간 상품 id. iOS 앱에 내려갑니다. 비우면 iOS 에는 이 캠페인이 내려가지 않습니다. 월간은 캠페인 대상이 아닙니다."
         rules={[
-          requiredWhenEnabled,
+          productIdRequiredWhenEnabled,
           {
             pattern: /^[A-Za-z0-9][A-Za-z0-9._]{0,99}$/,
             message: "영숫자·점·밑줄만 쓸 수 있습니다",
+          },
+        ]}
+      >
+        <Input placeholder="myday_plus_yearly_earlybird" />
+      </Form.Item>
+      <Form.Item
+        name="yearly_product_id_android"
+        label="Android 연간 상품 ID (Google Play)"
+        dependencies={["enabled", "yearly_product_id"]}
+        extra="Google Play Console 의 할인 연간 구독 상품 id(할인가 기본 요금제 1개 + 무료 체험 혜택). Android 앱에 내려갑니다. 비우면 Android 에는 이 캠페인이 내려가지 않습니다."
+        rules={[
+          productIdRequiredWhenEnabled,
+          {
+            pattern: /^[a-z0-9][a-z0-9._]{0,39}$/,
+            message: "소문자·숫자·점·밑줄만, 40자까지 쓸 수 있습니다",
           },
         ]}
       >

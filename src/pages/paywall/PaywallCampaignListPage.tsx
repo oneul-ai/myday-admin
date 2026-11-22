@@ -115,13 +115,27 @@ export default function PaywallCampaignListPage() {
       },
       {
         title: "연간 상품 ID",
-        dataIndex: "yearly_product_id",
-        render: (id: string | null) =>
-          id ? (
-            <Typography.Text code>{id}</Typography.Text>
-          ) : (
-            <Typography.Text type="secondary">—</Typography.Text>
-          ),
+        key: "yearly_product_ids",
+        // 상품 id 는 스토어마다 따로 — 비어 있는 플랫폼에는 캠페인이 내려가지 않는다.
+        render: (_: unknown, row: PaywallCampaign) => (
+          <Space direction="vertical" size={2}>
+            {(
+              [
+                ["iOS", row.yearly_product_id],
+                ["Android", row.yearly_product_id_android],
+              ] as const
+            ).map(([platform, id]) => (
+              <span key={platform}>
+                <Typography.Text type="secondary">{platform} </Typography.Text>
+                {id ? (
+                  <Typography.Text code>{id}</Typography.Text>
+                ) : (
+                  <Typography.Text type="secondary">—</Typography.Text>
+                )}
+              </span>
+            ))}
+          </Space>
+        ),
       },
       {
         title: "기간",

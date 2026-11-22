@@ -188,8 +188,13 @@ export interface PaywallCampaign {
   enabled: boolean;
   /** 어드민 메모 — 클라이언트에 내려가지 않는다. */
   name: string | null;
-  /** App Store Connect 의 할인 연간 상품 id (예: myday_plus_yearly_earlybird). */
+  /** App Store Connect 의 할인 연간 상품 id (예: myday_plus_yearly_earlybird) — iOS 앱에 내려간다. */
   yearly_product_id: string | null;
+  /**
+   * Google Play 의 할인 연간 구독 상품 id — Android 앱에는 이 값이 yearly_product_id 자리에 내려간다.
+   * null 이면 Android 에는 이 캠페인이 내려가지 않는다(정가 페이월).
+   */
+  yearly_product_id_android: string | null;
   /** 배지 종류 — 문구·색은 앱 리소스. */
   badge: PaywallBadge | null;
   /** ISO 8601 (offset 포함). null 이면 그쪽 경계 없음. */

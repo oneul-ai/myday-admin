@@ -240,7 +240,7 @@ function CampaignForm({
       form.getFieldValue("enabled") &&
       !form.getFieldValue("yearly_product_id")?.trim() &&
       !form.getFieldValue("yearly_product_id_android")?.trim()
-        ? Promise.reject(new Error("노출 상태에서는 iOS·Android 상품 ID 중 하나는 필수입니다"))
+        ? Promise.reject(new Error("노출 상태에서는 iOS 상품 ID 와 Android 기본 요금제 ID 중 하나는 필수입니다"))
         : Promise.resolve(),
   };
 
@@ -307,9 +307,9 @@ function CampaignForm({
       </Form.Item>
       <Form.Item
         name="yearly_product_id_android"
-        label="Android 연간 상품 ID (Google Play)"
+        label="Android 연간 기본 요금제 ID (Google Play)"
         dependencies={["enabled", "yearly_product_id"]}
-        extra="Google Play Console 의 할인 연간 구독 상품 id(할인가 기본 요금제 1개 + 무료 체험 혜택). Android 앱에 내려갑니다. 비우면 Android 에는 이 캠페인이 내려가지 않습니다."
+        extra="Google Play 는 구독 상품 하나(마이데이 PLUS) 안에 기본 요금제를 여러 개 둡니다 — 상품 ID 가 아니라 그 안의 할인 연간 기본 요금제 ID 를 넣으세요(하이픈 사용, 밑줄 불가). Android 앱에 내려갑니다. 비우면 Android 에는 이 캠페인이 내려가지 않습니다."
         rules={[
           productIdRequiredWhenEnabled,
           {
@@ -318,7 +318,7 @@ function CampaignForm({
           },
         ]}
       >
-        <Input placeholder="myday-plus-yearly-earlybird" />
+        <Input placeholder="myday-prod-plus-yearly-earlybird" />
       </Form.Item>
       <Form.Item
         name="badge"

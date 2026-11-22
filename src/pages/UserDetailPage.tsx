@@ -329,6 +329,7 @@ import { getUserEvents } from "../api/schedules";
 import { getUserRepeatTasks, type RepeatTask } from "../api/routines";
 import { useMe } from "../auth/useMe";
 import AppStoreTransactionsTable from "../components/AppStoreTransactionsTable";
+import GooglePlayPurchasesTable from "../components/GooglePlayPurchasesTable";
 import { LOCALE_LABELS } from "../constants/locales";
 import dayjs from "dayjs";
 import { useState } from "react";
@@ -815,6 +816,19 @@ export default function UserDetailPage() {
             보이지 않으니, 비어 있으면 App Store 결제 페이지에서 미해결 건을 확인하세요.
           </Typography.Paragraph>
           <AppStoreTransactionsTable filters={{ user_uid: user.uid }} showUserColumn={false} />
+        </>
+      ),
+    },
+    {
+      key: "google-play",
+      label: "Google Play 구독",
+      children: (
+        <>
+          <Typography.Paragraph type="secondary" style={{ marginTop: 0 }}>
+            이 유저의 Google Play 구독 (구독 1건당 1행, 현재 상태). '이용 중'인 행이 있으면 PLUS 입니다.
+            회차별 결제 내역은 Play Console 의 주문 관리에서 주문 번호로 확인하세요.
+          </Typography.Paragraph>
+          <GooglePlayPurchasesTable filters={{ user_uid: user.uid }} showUserColumn={false} />
         </>
       ),
     },

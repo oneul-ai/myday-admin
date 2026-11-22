@@ -191,7 +191,8 @@ export interface PaywallCampaign {
   /** App Store Connect 의 할인 연간 상품 id (예: myday_plus_yearly_earlybird) — iOS 앱에 내려간다. */
   yearly_product_id: string | null;
   /**
-   * Google Play 의 할인 연간 구독 상품 id — Android 앱에는 이 값이 yearly_product_id 자리에 내려간다.
+   * Google Play 의 할인 연간 **기본 요금제 id**(구독 상품 하나 안의 base plan, 예: myday-prod-plus-yearly-earlybird) —
+   * Android 앱에는 이 값이 yearly_product_id 자리에 내려간다. 필드 이름은 product 지만 Play 에서는 요금제 id 다.
    * null 이면 Android 에는 이 캠페인이 내려가지 않는다(정가 페이월).
    */
   yearly_product_id_android: string | null;

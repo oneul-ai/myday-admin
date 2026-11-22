@@ -12,6 +12,7 @@ import UsersPage from "./pages/UsersPage";
 import UserDetailPage from "./pages/UserDetailPage";
 import UserAuthMigrationPage from "./pages/UserAuthMigrationPage";
 import AppStoreTransactionsPage from "./pages/AppStoreTransactionsPage";
+import GooglePlayPurchasesPage from "./pages/GooglePlayPurchasesPage";
 import RestPreferenceOptionsPage from "./pages/RestPreferenceOptionsPage";
 import HabitPresetsPage from "./pages/HabitPresetsPage";
 import FeedbacksPage from "./pages/FeedbacksPage";
@@ -95,6 +96,14 @@ export default function App() {
                     element={
                       <SuperAdminRoute>
                         <AppStoreTransactionsPage />
+                      </SuperAdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/google-play"
+                    element={
+                      <SuperAdminRoute>
+                        <GooglePlayPurchasesPage />
                       </SuperAdminRoute>
                     }
                   />

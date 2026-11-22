@@ -313,12 +313,12 @@ function CampaignForm({
         rules={[
           productIdRequiredWhenEnabled,
           {
-            pattern: /^[a-z0-9][a-z0-9._]{0,39}$/,
-            message: "소문자·숫자·점·밑줄만, 40자까지 쓸 수 있습니다",
+            pattern: /^[a-z0-9][a-z0-9._-]{0,39}$/,
+            message: "소문자·숫자·하이픈·점·밑줄만, 40자까지 쓸 수 있습니다",
           },
         ]}
       >
-        <Input placeholder="myday_plus_yearly_earlybird" />
+        <Input placeholder="myday-plus-yearly-earlybird" />
       </Form.Item>
       <Form.Item
         name="badge"
